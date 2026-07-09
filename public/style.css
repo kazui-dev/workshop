@@ -34,8 +34,8 @@ body, html {
 
 #idle-joystick {
     position: absolute;
-    left: clamp(40px, 10vmin, 100px);
-    bottom: clamp(40px, 10vmin, 100px);
+    right: clamp(60px, 12vmin, 120px);
+    bottom: clamp(60px, 12vmin, 120px);
     width: 100px;
     height: 100px;
     background: rgba(255, 255, 255, 0.2);
