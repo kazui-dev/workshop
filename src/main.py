@@ -2,19 +2,20 @@ import asyncio
 import logging
 
 from server import OperationServer
+from motor import MotorDriver
 
 logger = logging.getLogger(__name__)
 
-
-def log_pwm(left: int, right: int) -> None:
-    logger.info("Motor command: left=%d right=%d", left, right)
-
-
 async def main() -> None:
-    server = OperationServer(log_pwm)
-    await server.run()
+    motor = MotorDriver()
 
+    server = OperationServer(motor.set_pwm)
 
+    try:
+        await server.run()
+    finally:
+        motor.close()
+    
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
