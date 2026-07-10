@@ -9,7 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
         zone: document.getElementById('joystick-area'),
         mode: 'dynamic',
         catchDistance: 150,
-        color: '#ffffff',
+        color: {
+            back: 'rgba(255, 255, 255, 0.2)',
+            front: '#ffffff'
+        },
         size: 100
     });
 
@@ -46,7 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
         intervalId = setInterval(sendDataInterval, 50);
     });
 
-    manager.on('move', (evt, data) => {
+    manager.on('move', (evt) => {
+        const data = evt.data;
         if (data && data.vector) {
             stickX = data.vector.x;
             stickY = data.vector.y;
