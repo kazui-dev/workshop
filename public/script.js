@@ -1,82 +1,101 @@
-document.addEventListener('DOMContentLoaded', () => {
-    let stickX = 0;
-    let stickY = 0;
-    let intervalId = null;
-    let websocket = null;
+const MAX_PWM = 255;
+const PWM_SEND_INTERVAL_MS = 50;
+const WEBSOCKET_RECONNECT_DELAY_MS = 1000;
+const STOP_PWM = Object.freeze({ left: 0, right: 0 });
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function calculatePWM(x, y) {
+    const left = clamp(y + x, -1, 1);
+    const right = clamp(y - x, -1, 1);
+
+    return {
+        left: Math.round(left * MAX_PWM),
+        right: Math.round(right * MAX_PWM)
+    };
+}
+
+function createWebSocketClient(url) {
+    let socket = null;
     let reconnectTimeoutId = null;
-    let inputActive = false;
-    let isCssFullscreen = false;
-    let fullscreenTransitionPending = false;
-
-    const idleJoystick = document.getElementById('idle-joystick');
-    const videoStreamArea = document.getElementById('video-stream-area');
-    const fullscreenButton = document.getElementById('fullscreen-button');
-    const fullscreenIcon = document.getElementById('fullscreen-icon');
-    const portraitMediaQuery = window.matchMedia('(orientation: portrait)');
-    const websocketUrl = `ws://${location.hostname}:8765`;
-
-    function isWebSocketConnected() {
-        return websocket && websocket.readyState === WebSocket.OPEN;
-    }
-
-    function sendPWM(pwmData) {
-        if (!isWebSocketConnected()) {
-            return;
-        }
-
-        try {
-            websocket.send(JSON.stringify(pwmData));
-        } catch (error) {
-            console.error('Failed to send PWM data:', error);
-        }
-    }
 
     function scheduleReconnect() {
-        if (reconnectTimeoutId) {
+        if (reconnectTimeoutId !== null) {
             return;
         }
 
         reconnectTimeoutId = setTimeout(() => {
             reconnectTimeoutId = null;
-            connectWebSocket();
-        }, 1000);
+            connect();
+        }, WEBSOCKET_RECONNECT_DELAY_MS);
     }
 
-    function connectWebSocket() {
-        if (
-            websocket
-            && (
-                websocket.readyState === WebSocket.OPEN
-                || websocket.readyState === WebSocket.CONNECTING
-            )
-        ) {
+    function connect() {
+        const connectionInProgress = socket && (
+            socket.readyState === WebSocket.OPEN
+            || socket.readyState === WebSocket.CONNECTING
+        );
+
+        if (connectionInProgress) {
             return;
         }
 
+        let connection;
+
         try {
-            websocket = new WebSocket(websocketUrl);
+            connection = new WebSocket(url);
+            socket = connection;
         } catch (error) {
             console.error('Failed to create WebSocket:', error);
             scheduleReconnect();
             return;
         }
 
-        websocket.addEventListener('open', () => {
+        connection.addEventListener('open', () => {
             console.info('WebSocket connected');
         });
 
-        websocket.addEventListener('error', (event) => {
+        connection.addEventListener('error', (event) => {
             console.error('WebSocket error:', event);
         });
 
-        websocket.addEventListener('close', () => {
-            websocket = null;
+        connection.addEventListener('close', () => {
+            if (socket === connection) {
+                socket = null;
+            }
             scheduleReconnect();
         });
     }
 
+    function send(data) {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            return;
+        }
+
+        try {
+            socket.send(JSON.stringify(data));
+        } catch (error) {
+            console.error('Failed to send PWM data:', error);
+        }
+    }
+
+    connect();
+
+    return { send };
+}
+
+function setupJoystick(zone, idleJoystick, sendPWM) {
+    const state = {
+        x: 0,
+        y: 0,
+        active: false,
+        intervalId: null
+    };
+
     const manager = nipplejs.create({
-        zone: document.getElementById('joystick-area'),
+        zone,
         mode: 'dynamic',
         catchDistance: 150,
         color: {
@@ -86,210 +105,112 @@ document.addEventListener('DOMContentLoaded', () => {
         size: 100
     });
 
-    function calculatePWM(x, y) {
-        const forward = y;
-        const turn = x;
-
-        let leftPWM = forward + turn;
-        let rightPWM = forward - turn;
-
-        leftPWM = Math.max(-1.0, Math.min(1.0, leftPWM));
-        rightPWM = Math.max(-1.0, Math.min(1.0, rightPWM));
-
-        return {
-            left: Math.round(leftPWM * 255),
-            right: Math.round(rightPWM * 255)
-        };
-    }
-
-    function sendDataInterval() {
-        const pwmData = calculatePWM(stickX, stickY);
-        sendPWM(pwmData);
-    }
-
-    function stopJoystickInput() {
-        if (intervalId) {
-            clearInterval(intervalId);
-            intervalId = null;
+    function stop() {
+        if (state.intervalId !== null) {
+            clearInterval(state.intervalId);
+            state.intervalId = null;
         }
 
-        inputActive = false;
-        stickX = 0;
-        stickY = 0;
-        sendPWM({ left: 0, right: 0 });
-
-        if (idleJoystick) {
-            idleJoystick.style.opacity = '1';
-        }
+        state.active = false;
+        state.x = 0;
+        state.y = 0;
+        idleJoystick.classList.remove('is-input-active');
+        sendPWM(STOP_PWM);
     }
 
     manager.on('start', () => {
-        if (idleJoystick && idleJoystick.style.opacity !== '0') {
-            idleJoystick.style.opacity = '0';
+        if (state.intervalId !== null) {
+            clearInterval(state.intervalId);
         }
 
-        stickX = 0;
-        stickY = 0;
-        inputActive = true;
-        
-        if (intervalId) clearInterval(intervalId);
-        intervalId = setInterval(sendDataInterval, 50);
+        state.active = true;
+        state.x = 0;
+        state.y = 0;
+        idleJoystick.classList.add('is-input-active');
+        state.intervalId = setInterval(() => {
+            sendPWM(calculatePWM(state.x, state.y));
+        }, PWM_SEND_INTERVAL_MS);
     });
 
-    manager.on('move', (evt) => {
-        if (!inputActive) {
+    manager.on('move', (event) => {
+        const vector = event.data?.vector;
+
+        if (!state.active || !vector) {
             return;
         }
 
-        const data = evt.data;
-        if (data && data.vector) {
-            stickX = data.vector.x;
-            stickY = data.vector.y;
-        }
+        state.x = vector.x;
+        state.y = vector.y;
     });
 
-    manager.on('end', () => {
-        stopJoystickInput();
-    });
+    manager.on('end', stop);
 
-    if (portraitMediaQuery.addEventListener) {
-        portraitMediaQuery.addEventListener('change', stopJoystickInput);
-    } else {
-        portraitMediaQuery.addListener(stopJoystickInput);
+    return { stop };
+}
+
+function setupFullscreen(area, button, icon) {
+    const supported = Boolean(
+        document.fullscreenEnabled
+        && typeof area.requestFullscreen === 'function'
+        && typeof document.exitFullscreen === 'function'
+    );
+
+    if (!supported) {
+        return;
     }
 
-    function getFullscreenElement() {
-        return document.fullscreenElement || document.webkitFullscreenElement;
-    }
+    function updateButton() {
+        const active = document.fullscreenElement === area;
 
-    function getRequestFullscreen() {
-        return videoStreamArea.requestFullscreen || videoStreamArea.webkitRequestFullscreen;
-    }
-
-    function getExitFullscreen() {
-        return (
-            document.exitFullscreen
-            || document.webkitExitFullscreen
-            || document.webkitCancelFullScreen
-        );
-    }
-
-    function isFullscreenSupported() {
-        const fullscreenEnabled = (
-            document.fullscreenEnabled ?? document.webkitFullscreenEnabled
-        );
-
-        return Boolean(
-            getRequestFullscreen()
-            && getExitFullscreen()
-            && fullscreenEnabled !== false
-        );
-    }
-
-    function updateFullscreenButton() {
-        const isFullscreen = (
-            getFullscreenElement() === videoStreamArea
-            || isCssFullscreen
-        );
-        fullscreenButton.setAttribute(
+        button.setAttribute(
             'aria-label',
-            isFullscreen ? '全画面表示を終了' : 'カメラ映像を全画面表示'
+            active ? '全画面表示を終了' : 'カメラ映像を全画面表示'
         );
-        fullscreenButton.setAttribute('aria-pressed', String(isFullscreen));
-        fullscreenIcon.src = isFullscreen
+        button.setAttribute('aria-pressed', String(active));
+        icon.src = active
             ? 'assets/fullscreen-exit.svg'
             : 'assets/fullscreen.svg';
     }
 
-    function toggleCssFullscreen(force) {
-        isCssFullscreen = force ?? !isCssFullscreen;
-        videoStreamArea.classList.toggle('is-css-fullscreen', isCssFullscreen);
-        updateFullscreenButton();
-    }
-
-    function waitForNativeFullscreen(timeout = 750) {
-        if (getFullscreenElement() === videoStreamArea) {
-            return Promise.resolve(true);
-        }
-
-        return new Promise((resolve) => {
-            let timeoutId;
-
-            const finish = (enteredFullscreen) => {
-                clearTimeout(timeoutId);
-                document.removeEventListener('fullscreenchange', handleChange);
-                document.removeEventListener('webkitfullscreenchange', handleChange);
-                resolve(enteredFullscreen);
-            };
-
-            const handleChange = () => {
-                if (getFullscreenElement() === videoStreamArea) {
-                    finish(true);
-                }
-            };
-
-            document.addEventListener('fullscreenchange', handleChange);
-            document.addEventListener('webkitfullscreenchange', handleChange);
-            timeoutId = setTimeout(() => finish(false), timeout);
-        });
-    }
-
-    async function toggleFullscreen() {
-        if (fullscreenTransitionPending) {
-            return;
-        }
-
-        if (isCssFullscreen) {
-            toggleCssFullscreen();
-            return;
-        }
-
-        const nativeFullscreenSupported = isFullscreenSupported();
-        if (!nativeFullscreenSupported) {
-            toggleCssFullscreen();
-            return;
-        }
-
-        const isNativeFullscreen = Boolean(getFullscreenElement());
-        fullscreenTransitionPending = true;
+    async function toggle() {
+        button.disabled = true;
 
         try {
-            if (isNativeFullscreen) {
-                await getExitFullscreen().call(document);
-                return;
-            }
-
-            const fullscreenEntered = waitForNativeFullscreen();
-            const requestResult = getRequestFullscreen().call(videoStreamArea);
-
-            // Some Safari versions expose the WebKit API but neither reject nor
-            // enter fullscreen for non-video elements. Verify the state instead
-            // of treating the presence of the API as success.
-            if (requestResult && typeof requestResult.catch === 'function') {
-                requestResult.catch((error) => {
-                    console.error('Failed to enter fullscreen:', error);
-                });
-            }
-
-            if (!await fullscreenEntered) {
-                toggleCssFullscreen(true);
+            if (document.fullscreenElement === area) {
+                await document.exitFullscreen();
+            } else {
+                await area.requestFullscreen();
             }
         } catch (error) {
             console.error('Failed to toggle fullscreen:', error);
-            if (!isNativeFullscreen) {
-                toggleCssFullscreen(true);
-            }
         } finally {
-            fullscreenTransitionPending = false;
+            button.disabled = false;
         }
     }
 
-    fullscreenButton.addEventListener('click', toggleFullscreen);
+    button.hidden = false;
+    button.addEventListener('click', toggle);
+    document.addEventListener('fullscreenchange', updateButton);
+}
 
-    if (isFullscreenSupported()) {
-        document.addEventListener('fullscreenchange', updateFullscreenButton);
-        document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
-    }
+document.addEventListener('DOMContentLoaded', () => {
+    const idleJoystick = document.getElementById('idle-joystick');
+    const joystickArea = document.getElementById('joystick-area');
+    const videoStreamArea = document.getElementById('video-stream-area');
+    const fullscreenButton = document.getElementById('fullscreen-button');
+    const fullscreenIcon = document.getElementById('fullscreen-icon');
 
-    connectWebSocket();
+    const websocketClient = createWebSocketClient(
+        `ws://${location.hostname}:8765`
+    );
+    const joystick = setupJoystick(
+        joystickArea,
+        idleJoystick,
+        websocketClient.send
+    );
+
+    window.matchMedia('(orientation: portrait)')
+        .addEventListener('change', joystick.stop);
+
+    setupFullscreen(videoStreamArea, fullscreenButton, fullscreenIcon);
 });
