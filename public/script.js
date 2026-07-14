@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let websocket = null;
     let reconnectTimeoutId = null;
     let inputActive = false;
+    let isCssFullscreen = false;
 
     const idleJoystick = document.getElementById('idle-joystick');
     const videoStreamArea = document.getElementById('video-stream-area');
@@ -181,7 +182,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateFullscreenButton() {
-        const isFullscreen = getFullscreenElement() === videoStreamArea;
+        const isFullscreen = (
+            getFullscreenElement() === videoStreamArea
+            || isCssFullscreen
+        );
         fullscreenButton.setAttribute(
             'aria-label',
             isFullscreen ? '全画面表示を終了' : 'カメラ映像を全画面表示'
@@ -192,9 +196,28 @@ document.addEventListener('DOMContentLoaded', () => {
             : 'assets/fullscreen.svg';
     }
 
+    function toggleCssFullscreen(force) {
+        isCssFullscreen = force ?? !isCssFullscreen;
+        videoStreamArea.classList.toggle('is-css-fullscreen', isCssFullscreen);
+        updateFullscreenButton();
+    }
+
     async function toggleFullscreen() {
+        if (isCssFullscreen) {
+            toggleCssFullscreen();
+            return;
+        }
+
+        const nativeFullscreenSupported = isFullscreenSupported();
+        if (!nativeFullscreenSupported) {
+            toggleCssFullscreen();
+            return;
+        }
+
+        const isNativeFullscreen = Boolean(getFullscreenElement());
+
         try {
-            if (getFullscreenElement()) {
+            if (isNativeFullscreen) {
                 await getExitFullscreen().call(document);
                 return;
             }
@@ -202,12 +225,15 @@ document.addEventListener('DOMContentLoaded', () => {
             await getRequestFullscreen().call(videoStreamArea);
         } catch (error) {
             console.error('Failed to toggle fullscreen:', error);
+            if (!isNativeFullscreen) {
+                toggleCssFullscreen(true);
+            }
         }
     }
 
+    fullscreenButton.addEventListener('click', toggleFullscreen);
+
     if (isFullscreenSupported()) {
-        fullscreenButton.hidden = false;
-        fullscreenButton.addEventListener('click', toggleFullscreen);
         document.addEventListener('fullscreenchange', updateFullscreenButton);
         document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
     }
