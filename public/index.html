@@ -10,9 +10,12 @@
 
     <div id="video-stream-area">
         <img id="camera-stream" src="/stream" alt="">
+        <button id="fullscreen-button" type="button" aria-label="カメラ映像を全画面表示">
+            <img id="fullscreen-icon" src="assets/fullscreen.svg" alt="" aria-hidden="true">
+        </button>
+        <div id="idle-joystick"></div>
+        <div id="joystick-area"></div>
     </div>
-    <div id="idle-joystick"></div>
-    <div id="joystick-area"></div>
 
     <script src="vendor/nipplejs-1.0.4.min.js"></script>
     <script src="script.js"></script>

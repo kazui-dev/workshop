@@ -10,6 +10,7 @@
 body, html {
     width: 100%;
     height: 100%;
+    height: 100dvh;
     overflow: hidden;
     background-color: #000;
 }
@@ -20,7 +21,6 @@ body, html {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1;
     overflow: hidden;
 }
 
@@ -32,6 +32,36 @@ body, html {
     pointer-events: none;
 }
 
+#fullscreen-button {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.55);
+    cursor: pointer;
+    z-index: 4;
+    touch-action: manipulation;
+}
+
+#fullscreen-button:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 2px;
+}
+
+#fullscreen-icon {
+    display: block;
+    width: 28px;
+    height: 28px;
+    pointer-events: none;
+}
+
 #joystick-area {
     position: absolute;
     top: 0;
@@ -39,11 +69,12 @@ body, html {
     width: 100%;
     height: 100%;
     z-index: 2;
+    touch-action: none;
 }
 
 #idle-joystick {
     position: absolute;
-    right: clamp(60px, 12vmin, 120px);
+    left: 50%;
     bottom: clamp(60px, 12vmin, 120px);
     width: 100px;
     height: 100px;
@@ -51,6 +82,7 @@ body, html {
     border-radius: 50%;
     z-index: 3;
     pointer-events: none;
+    transform: translateX(-50%);
     transition: opacity 0.2s ease;
 }
 
@@ -64,4 +96,18 @@ body, html {
     background: rgba(255, 255, 255, 0.5);
     border-radius: 50%;
     transform: translate(-50%, -50%);
+}
+
+@media (orientation: landscape) {
+    #idle-joystick {
+        left: clamp(60px, 12vmin, 120px);
+        transform: none;
+    }
+}
+
+#video-stream-area:fullscreen,
+#video-stream-area:-webkit-full-screen {
+    width: 100%;
+    height: 100%;
+    background: #000;
 }
