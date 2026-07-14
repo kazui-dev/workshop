@@ -1,1 +1,2 @@
+pigpio==1.78
 websockets==15.0.1
