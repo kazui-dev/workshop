@@ -50,6 +50,10 @@ body, html {
     touch-action: manipulation;
 }
 
+#fullscreen-button[hidden] {
+    display: none;
+}
+
 #fullscreen-button:focus-visible {
     outline: 3px solid #fff;
     outline-offset: 2px;
