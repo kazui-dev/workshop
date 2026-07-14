@@ -4,8 +4,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let intervalId = null;
     let websocket = null;
     let reconnectTimeoutId = null;
+    let inputActive = false;
 
     const idleJoystick = document.getElementById('idle-joystick');
+    const videoStreamArea = document.getElementById('video-stream-area');
+    const fullscreenButton = document.getElementById('fullscreen-button');
+    const fullscreenIcon = document.getElementById('fullscreen-icon');
+    const portraitMediaQuery = window.matchMedia('(orientation: portrait)');
     const websocketUrl = `ws://${location.hostname}:8765`;
 
     function isWebSocketConnected() {
@@ -100,6 +105,22 @@ document.addEventListener('DOMContentLoaded', () => {
         sendPWM(pwmData);
     }
 
+    function stopJoystickInput() {
+        if (intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
+        }
+
+        inputActive = false;
+        stickX = 0;
+        stickY = 0;
+        sendPWM({ left: 0, right: 0 });
+
+        if (idleJoystick) {
+            idleJoystick.style.opacity = '1';
+        }
+    }
+
     manager.on('start', () => {
         if (idleJoystick && idleJoystick.style.opacity !== '0') {
             idleJoystick.style.opacity = '0';
@@ -107,12 +128,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         stickX = 0;
         stickY = 0;
+        inputActive = true;
         
         if (intervalId) clearInterval(intervalId);
         intervalId = setInterval(sendDataInterval, 50);
     });
 
     manager.on('move', (evt) => {
+        if (!inputActive) {
+            return;
+        }
+
         const data = evt.data;
         if (data && data.vector) {
             stickX = data.vector.x;
@@ -121,20 +147,56 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     manager.on('end', () => {
-        if (intervalId) {
-            clearInterval(intervalId);
-            intervalId = null;
-        }
-        
-        stickX = 0;
-        stickY = 0;
-
-        sendPWM({ left: 0, right: 0 });
-
-        if (idleJoystick) {
-            idleJoystick.style.opacity = '1';
-        }
+        stopJoystickInput();
     });
+
+    if (portraitMediaQuery.addEventListener) {
+        portraitMediaQuery.addEventListener('change', stopJoystickInput);
+    } else {
+        portraitMediaQuery.addListener(stopJoystickInput);
+    }
+
+    function getFullscreenElement() {
+        return document.fullscreenElement || document.webkitFullscreenElement;
+    }
+
+    function updateFullscreenButton() {
+        const isFullscreen = getFullscreenElement() === videoStreamArea;
+        fullscreenButton.setAttribute(
+            'aria-label',
+            isFullscreen ? '全画面表示を終了' : 'カメラ映像を全画面表示'
+        );
+        fullscreenButton.setAttribute('aria-pressed', String(isFullscreen));
+        fullscreenIcon.src = isFullscreen
+            ? 'assets/fullscreen-exit.svg'
+            : 'assets/fullscreen.svg';
+    }
+
+    async function toggleFullscreen() {
+        try {
+            if (getFullscreenElement()) {
+                const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
+                if (exitFullscreen) {
+                    await exitFullscreen.call(document);
+                }
+                return;
+            }
+
+            const requestFullscreen = (
+                videoStreamArea.requestFullscreen
+                || videoStreamArea.webkitRequestFullscreen
+            );
+            if (requestFullscreen) {
+                await requestFullscreen.call(videoStreamArea);
+            }
+        } catch (error) {
+            console.error('Failed to toggle fullscreen:', error);
+        }
+    }
+
+    fullscreenButton.addEventListener('click', toggleFullscreen);
+    document.addEventListener('fullscreenchange', updateFullscreenButton);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
 
     connectWebSocket();
 });
