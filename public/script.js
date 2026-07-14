@@ -160,6 +160,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return document.fullscreenElement || document.webkitFullscreenElement;
     }
 
+    function getRequestFullscreen() {
+        return videoStreamArea.requestFullscreen || videoStreamArea.webkitRequestFullscreen;
+    }
+
+    function getExitFullscreen() {
+        return document.exitFullscreen || document.webkitExitFullscreen;
+    }
+
+    function isFullscreenSupported() {
+        const fullscreenEnabled = (
+            document.fullscreenEnabled ?? document.webkitFullscreenEnabled
+        );
+
+        return Boolean(
+            getRequestFullscreen()
+            && getExitFullscreen()
+            && fullscreenEnabled !== false
+        );
+    }
+
     function updateFullscreenButton() {
         const isFullscreen = getFullscreenElement() === videoStreamArea;
         fullscreenButton.setAttribute(
@@ -175,28 +195,22 @@ document.addEventListener('DOMContentLoaded', () => {
     async function toggleFullscreen() {
         try {
             if (getFullscreenElement()) {
-                const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
-                if (exitFullscreen) {
-                    await exitFullscreen.call(document);
-                }
+                await getExitFullscreen().call(document);
                 return;
             }
 
-            const requestFullscreen = (
-                videoStreamArea.requestFullscreen
-                || videoStreamArea.webkitRequestFullscreen
-            );
-            if (requestFullscreen) {
-                await requestFullscreen.call(videoStreamArea);
-            }
+            await getRequestFullscreen().call(videoStreamArea);
         } catch (error) {
             console.error('Failed to toggle fullscreen:', error);
         }
     }
 
-    fullscreenButton.addEventListener('click', toggleFullscreen);
-    document.addEventListener('fullscreenchange', updateFullscreenButton);
-    document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+    if (isFullscreenSupported()) {
+        fullscreenButton.hidden = false;
+        fullscreenButton.addEventListener('click', toggleFullscreen);
+        document.addEventListener('fullscreenchange', updateFullscreenButton);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+    }
 
     connectWebSocket();
 });
