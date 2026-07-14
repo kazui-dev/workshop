@@ -116,6 +116,10 @@ body {
 }
 
 @media (orientation: landscape) {
+    :root {
+        --joystick-edge: clamp(32px, 8vmin, 64px);
+    }
+
     #idle-joystick {
         left: var(--joystick-edge);
         transform: none;
