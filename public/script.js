@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let reconnectTimeoutId = null;
     let inputActive = false;
     let isCssFullscreen = false;
+    let fullscreenTransitionPending = false;
 
     const idleJoystick = document.getElementById('idle-joystick');
     const videoStreamArea = document.getElementById('video-stream-area');
@@ -166,7 +167,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getExitFullscreen() {
-        return document.exitFullscreen || document.webkitExitFullscreen;
+        return (
+            document.exitFullscreen
+            || document.webkitExitFullscreen
+            || document.webkitCancelFullScreen
+        );
     }
 
     function isFullscreenSupported() {
@@ -202,7 +207,38 @@ document.addEventListener('DOMContentLoaded', () => {
         updateFullscreenButton();
     }
 
+    function waitForNativeFullscreen(timeout = 750) {
+        if (getFullscreenElement() === videoStreamArea) {
+            return Promise.resolve(true);
+        }
+
+        return new Promise((resolve) => {
+            let timeoutId;
+
+            const finish = (enteredFullscreen) => {
+                clearTimeout(timeoutId);
+                document.removeEventListener('fullscreenchange', handleChange);
+                document.removeEventListener('webkitfullscreenchange', handleChange);
+                resolve(enteredFullscreen);
+            };
+
+            const handleChange = () => {
+                if (getFullscreenElement() === videoStreamArea) {
+                    finish(true);
+                }
+            };
+
+            document.addEventListener('fullscreenchange', handleChange);
+            document.addEventListener('webkitfullscreenchange', handleChange);
+            timeoutId = setTimeout(() => finish(false), timeout);
+        });
+    }
+
     async function toggleFullscreen() {
+        if (fullscreenTransitionPending) {
+            return;
+        }
+
         if (isCssFullscreen) {
             toggleCssFullscreen();
             return;
@@ -215,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const isNativeFullscreen = Boolean(getFullscreenElement());
+        fullscreenTransitionPending = true;
 
         try {
             if (isNativeFullscreen) {
@@ -222,12 +259,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            await getRequestFullscreen().call(videoStreamArea);
+            const fullscreenEntered = waitForNativeFullscreen();
+            const requestResult = getRequestFullscreen().call(videoStreamArea);
+
+            // Some Safari versions expose the WebKit API but neither reject nor
+            // enter fullscreen for non-video elements. Verify the state instead
+            // of treating the presence of the API as success.
+            if (requestResult && typeof requestResult.catch === 'function') {
+                requestResult.catch((error) => {
+                    console.error('Failed to enter fullscreen:', error);
+                });
+            }
+
+            if (!await fullscreenEntered) {
+                toggleCssFullscreen(true);
+            }
         } catch (error) {
             console.error('Failed to toggle fullscreen:', error);
             if (!isNativeFullscreen) {
                 toggleCssFullscreen(true);
             }
+        } finally {
+            fullscreenTransitionPending = false;
         }
     }
 
