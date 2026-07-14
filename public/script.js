@@ -159,7 +159,25 @@ function setupFullscreen(area, button, icon) {
         return;
     }
 
-    function updateButton() {
+    async function syncOrientation(active) {
+        const orientation = window.screen.orientation;
+
+        if (!orientation) {
+            return;
+        }
+
+        try {
+            if (active && typeof orientation.lock === 'function') {
+                await orientation.lock('landscape');
+            } else if (!active && typeof orientation.unlock === 'function') {
+                orientation.unlock();
+            }
+        } catch (error) {
+            console.warn('Failed to update screen orientation:', error);
+        }
+    }
+
+    function handleFullscreenChange() {
         const active = document.fullscreenElement === area;
 
         button.setAttribute(
@@ -170,6 +188,7 @@ function setupFullscreen(area, button, icon) {
         icon.src = active
             ? 'assets/fullscreen-exit.svg'
             : 'assets/fullscreen.svg';
+        void syncOrientation(active);
     }
 
     async function toggle() {
@@ -190,7 +209,7 @@ function setupFullscreen(area, button, icon) {
 
     button.hidden = false;
     button.addEventListener('click', toggle);
-    document.addEventListener('fullscreenchange', updateButton);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
