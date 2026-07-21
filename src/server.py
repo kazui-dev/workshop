@@ -106,6 +106,12 @@ class OperationServer:
                 except ConnectionClosed:
                     break
 
+                logger.info(
+                    "Received operation message from %s: %r",
+                    remote_address,
+                    message,
+                )
+
                 try:
                     left, right = _parse_operation_message(message)
                 except ValueError as exc:

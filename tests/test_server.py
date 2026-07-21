@@ -88,6 +88,30 @@ class OperationServerTest(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(asyncio.CancelledError):
             await task
 
+    async def test_logs_every_received_message(self) -> None:
+        controller = FakeController()
+        server = OperationServer(controller)
+        message = '{"left": 10, "right": -20}'
+        websocket = FakeWebSocket([message])
+
+        with self.assertLogs("server", level="INFO") as logs:
+            task = asyncio.create_task(
+                server.handle_connection(websocket)  # type: ignore[arg-type]
+            )
+            while not controller.operations:
+                await asyncio.sleep(0)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+
+        self.assertTrue(
+            any(
+                f"Received operation message from {websocket.remote_address}: {message!r}"
+                in entry
+                for entry in logs.output
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
