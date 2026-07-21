@@ -1,6 +1,6 @@
 # workshop
 
-Raspberry Pi Zero WH に載せたキャタピラ式ラジコンを、同じ Wi-Fi に接続したスマートフォンから操作するためのプロジェクトです。カメラ映像と Web UI は ustreamer、操作命令は Python の WebSocket サーバー、モーター制御は pigpio / pigpiod を使います。
+Raspberry Pi Zero WH を載せたキャタピラ式ラジコンを、同じ Wi-Fi に接続したスマートフォンから操作するためのプロジェクトです。カメラ映像と Web UI は ustreamer、操作命令は Python の WebSocket サーバー、モーター制御は pigpio / pigpiod を使います。
 
 ## 現在の実装範囲
 
