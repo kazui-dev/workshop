@@ -1,0 +1,131 @@
+:root {
+    --color-black: #000;
+    --color-white: #fff;
+    --control-overlay: rgba(0, 0, 0, 0.55);
+    --joystick-back: rgba(255, 255, 255, 0.2);
+    --joystick-front: rgba(255, 255, 255, 0.5);
+    --screen-edge: 12px;
+    --joystick-edge: clamp(60px, 12vmin, 120px);
+    --fullscreen-button-size: 48px;
+    --fullscreen-icon-size: 28px;
+    --joystick-size: 100px;
+    --joystick-handle-size: 50px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--color-black);
+}
+
+#video-stream-area,
+#joystick-area {
+    position: absolute;
+    inset: 0;
+}
+
+#video-stream-area {
+    overflow: hidden;
+}
+
+#camera-stream {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+#fullscreen-button {
+    position: absolute;
+    top: max(var(--screen-edge), env(safe-area-inset-top));
+    right: max(var(--screen-edge), env(safe-area-inset-right));
+    z-index: 4;
+    display: grid;
+    place-items: center;
+    width: var(--fullscreen-button-size);
+    height: var(--fullscreen-button-size);
+    border: 0;
+    border-radius: 8px;
+    background: var(--control-overlay);
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+#fullscreen-button[hidden] {
+    display: none;
+}
+
+#fullscreen-button:focus-visible {
+    outline: 3px solid var(--color-white);
+    outline-offset: 2px;
+}
+
+#fullscreen-icon {
+    display: block;
+    width: var(--fullscreen-icon-size);
+    height: var(--fullscreen-icon-size);
+    pointer-events: none;
+}
+
+#joystick-area {
+    z-index: 2;
+    touch-action: none;
+}
+
+#idle-joystick {
+    position: absolute;
+    left: 50%;
+    bottom: max(var(--joystick-edge), env(safe-area-inset-bottom));
+    z-index: 3;
+    width: var(--joystick-size);
+    height: var(--joystick-size);
+    border-radius: 50%;
+    background: var(--joystick-back);
+    pointer-events: none;
+    transform: translateX(-50%);
+    transition: opacity 0.2s ease;
+}
+
+#idle-joystick.is-input-active {
+    opacity: 0;
+}
+
+#idle-joystick::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--joystick-handle-size);
+    height: var(--joystick-handle-size);
+    border-radius: 50%;
+    background: var(--joystick-front);
+    transform: translate(-50%, -50%);
+}
+
+@media (orientation: landscape) {
+    :root {
+        --joystick-edge: clamp(40px, 8vmin, 64px);
+    }
+
+    #idle-joystick {
+        left: max(var(--joystick-edge), env(safe-area-inset-left));
+        transform: none;
+    }
+}
+
+#video-stream-area:fullscreen {
+    background: var(--color-black);
+}
