@@ -91,7 +91,10 @@ class OperationServer:
                             websocket.recv(),
                             timeout=remaining,
                         )
-                except TimeoutError:
+                # asyncio.TimeoutError wasn't an alias of the built-in
+                # TimeoutError before Python 3.11.  Catch the asyncio name so
+                # this also works on older Raspberry Pi OS releases.
+                except asyncio.TimeoutError:
                     logger.warning(
                         "No operation message from %s for %.0fms; stopping motors",
                         remote_address,
