@@ -19,10 +19,12 @@ from config import (
 logger = logging.getLogger(__name__)
 
 
-class MotorController(Protocol):
-    def set_pwm(self, left: int, right: int) -> None: ...
+class OperationController(Protocol):
+    def apply_operation(self, left: int, right: int) -> None: ...
 
-    def stop(self) -> None: ...
+    def communication_timeout(self) -> None: ...
+
+    def disconnected(self) -> None: ...
 
 
 def _parse_operation_message(message: str | bytes) -> tuple[int, int]:
@@ -55,8 +57,8 @@ def _parse_operation_message(message: str | bytes) -> tuple[int, int]:
 
 
 class OperationServer:
-    def __init__(self, motor: MotorController) -> None:
-        self._motor = motor
+    def __init__(self, controller: OperationController) -> None:
+        self._controller = controller
         self._active_connection: ServerConnection | None = None
 
     async def handle_connection(self, websocket: ServerConnection) -> None:
@@ -95,7 +97,7 @@ class OperationServer:
                         remote_address,
                         OPERATION_TIMEOUT_SECONDS * 1000,
                     )
-                    self._motor.stop()
+                    self._controller.communication_timeout()
                     operation_deadline = None
                     continue
                 except ConnectionClosed:
@@ -111,11 +113,11 @@ class OperationServer:
                     )
                     continue
 
-                self._motor.set_pwm(left, right)
+                self._controller.apply_operation(left, right)
                 operation_deadline = loop.time() + OPERATION_TIMEOUT_SECONDS
         finally:
             try:
-                self._motor.stop()
+                self._controller.disconnected()
             finally:
                 self._active_connection = None
                 logger.info(

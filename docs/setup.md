@@ -36,9 +36,11 @@ python3 -m pip install -r requirements.txt
 
 ## 4. 配線と設定値を確認する
 
-[配線と設定値](hardware.md) を確認し、実装済みの左右モーターは `src/config.py` の設定に合わせて配線する。未実装のセンサーやブザーは、実装時に実機の配線に合わせて BCM GPIO 番号を決める。GPIO 番号は物理 PIN 番号ではなく BCM 番号として扱う。
+[配線と設定値](hardware.md) を確認し、左右モーター、HC-SR04、圧電ブザーを `src/config.py` の設定に合わせて配線する。GPIO 番号は物理 PIN 番号ではなく BCM 番号として扱う。
 
 配線を変更するときは Raspberry Pi とリレー回路、モーター用電源を切る。モーター用電源を Raspberry Pi の 5 V ピンから直接取らない。
+
+HC-SR04 の Echo は 5 V のため、分圧回路またはレベル変換を通して 3.3 V にしてから GPIO へ接続する。
 
 ## 5. カメラを確認する
 
