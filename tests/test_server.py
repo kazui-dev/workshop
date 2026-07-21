@@ -23,13 +23,14 @@ class FakeController:
 class FakeWebSocket:
     remote_address = ("127.0.0.1", 12345)
 
-    def __init__(self) -> None:
-        self.receive_count = 0
+    def __init__(self, messages: list[str]) -> None:
+        self.messages = iter(messages)
 
     async def recv(self) -> str:
-        self.receive_count += 1
-        if self.receive_count == 1:
-            return '{"left": 10, "right": -20}'
+        try:
+            return next(self.messages)
+        except StopIteration:
+            pass
 
         await asyncio.Event().wait()
         raise AssertionError("unreachable")
@@ -52,7 +53,7 @@ class OperationServerTest(unittest.IsolatedAsyncioTestCase):
     async def test_operation_timeout_is_handled_without_escaping(self) -> None:
         controller = FakeController()
         server = OperationServer(controller)
-        websocket = FakeWebSocket()
+        websocket = FakeWebSocket(['{"left": 10, "right": -20}'])
 
         task = asyncio.create_task(server.handle_connection(websocket))  # type: ignore[arg-type]
         await asyncio.wait_for(controller.timeout_called.wait(), timeout=1)
@@ -64,6 +65,28 @@ class OperationServerTest(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(asyncio.CancelledError):
             await task
         self.assertTrue(controller.disconnected_called)
+
+    async def test_explicit_stop_does_not_start_timeout(self) -> None:
+        controller = FakeController()
+        server = OperationServer(controller)
+        websocket = FakeWebSocket(
+            [
+                '{"left": 10, "right": -20}',
+                '{"left": 0, "right": 0}',
+            ]
+        )
+
+        task = asyncio.create_task(server.handle_connection(websocket))  # type: ignore[arg-type]
+        while len(controller.operations) < 2:
+            await asyncio.sleep(0)
+        await asyncio.sleep(0.2)
+
+        self.assertEqual(controller.operations, [(10, -20), (0, 0)])
+        self.assertFalse(controller.timeout_called.is_set())
+
+        task.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await task
 
 
 if __name__ == "__main__":

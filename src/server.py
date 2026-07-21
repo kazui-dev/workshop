@@ -117,7 +117,10 @@ class OperationServer:
                     continue
 
                 self._controller.apply_operation(left, right)
-                operation_deadline = loop.time() + OPERATION_TIMEOUT_SECONDS
+                if left == 0 and right == 0:
+                    operation_deadline = None
+                else:
+                    operation_deadline = loop.time() + OPERATION_TIMEOUT_SECONDS
         finally:
             try:
                 self._controller.disconnected()
