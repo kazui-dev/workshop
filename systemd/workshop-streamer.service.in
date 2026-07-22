@@ -1,5 +1,5 @@
 [Unit]
-Description=Workshop camera and Web UI server
+Description=Workshop camera and Web UI streamer
 After=network.target
 PartOf=workshop.target
 

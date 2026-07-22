@@ -42,7 +42,7 @@ Raspberry Pi と同じ Wi-Fi に接続したスマートフォンで、`http://<
 
 ```text
 workshop/
-├── deploy/systemd/  # 自動起動用の systemd unit
+├── systemd/         # 自動起動用の systemd unit
 ├── public/          # ustreamer が配信する Web UI
 ├── scripts/         # セットアップとサービス操作
 ├── src/             # WebSocket サーバーとモーター制御

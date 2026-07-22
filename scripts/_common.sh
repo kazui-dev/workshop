@@ -6,8 +6,8 @@ WORKSHOP_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 WORKSHOP_TARGET=workshop.target
 WORKSHOP_SERVICES=(
     pigpiod.service
-    workshop-control.service
-    workshop-ustreamer.service
+    workshop-controller.service
+    workshop-streamer.service
 )
 
 run_as_root() {

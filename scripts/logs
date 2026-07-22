@@ -9,5 +9,5 @@ source "$SCRIPT_DIR/_common.sh"
 require_installed_services
 run_as_root journalctl -b -f \
     -u pigpiod.service \
-    -u workshop-control.service \
-    -u workshop-ustreamer.service
+    -u workshop-controller.service \
+    -u workshop-streamer.service

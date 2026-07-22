@@ -1,8 +1,0 @@
-[Unit]
-Description=Workshop radio-controlled car
-Wants=pigpiod.service
-Requires=workshop-control.service workshop-ustreamer.service
-After=pigpiod.service workshop-control.service workshop-ustreamer.service
-
-[Install]
-WantedBy=multi-user.target

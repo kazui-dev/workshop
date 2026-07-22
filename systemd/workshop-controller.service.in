@@ -1,5 +1,5 @@
 [Unit]
-Description=Workshop operation server
+Description=Workshop operation controller
 Requires=pigpiod.service
 After=pigpiod.service
 PartOf=workshop.target

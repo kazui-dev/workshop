@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/_common.sh"
 require_installed_services
 run_as_root systemctl start pigpiod.service
 run_as_root systemctl start \
-    workshop-control.service \
-    workshop-ustreamer.service \
+    workshop-controller.service \
+    workshop-streamer.service \
     "$WORKSHOP_TARGET"
 "$SCRIPT_DIR/status"

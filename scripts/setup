@@ -93,8 +93,8 @@ done
 
 temporary_directory=$(mktemp -d)
 cleanup() {
-    rm -f -- "$temporary_directory/workshop-control.service"
-    rm -f -- "$temporary_directory/workshop-ustreamer.service"
+    rm -f -- "$temporary_directory/workshop-controller.service"
+    rm -f -- "$temporary_directory/workshop-streamer.service"
     rmdir -- "$temporary_directory"
 }
 trap cleanup EXIT
@@ -112,22 +112,22 @@ render_unit() {
 }
 
 render_unit \
-    "$WORKSHOP_ROOT/deploy/systemd/workshop-control.service.in" \
-    "$temporary_directory/workshop-control.service"
+    "$WORKSHOP_ROOT/systemd/workshop-controller.service.in" \
+    "$temporary_directory/workshop-controller.service"
 render_unit \
-    "$WORKSHOP_ROOT/deploy/systemd/workshop-ustreamer.service.in" \
-    "$temporary_directory/workshop-ustreamer.service"
+    "$WORKSHOP_ROOT/systemd/workshop-streamer.service.in" \
+    "$temporary_directory/workshop-streamer.service"
 
 echo "Installing and enabling Workshop systemd services"
 run_as_root install -m 0644 \
-    "$WORKSHOP_ROOT/deploy/systemd/workshop.target" \
+    "$WORKSHOP_ROOT/systemd/workshop.target" \
     /etc/systemd/system/workshop.target
 run_as_root install -m 0644 \
-    "$temporary_directory/workshop-control.service" \
-    /etc/systemd/system/workshop-control.service
+    "$temporary_directory/workshop-controller.service" \
+    /etc/systemd/system/workshop-controller.service
 run_as_root install -m 0644 \
-    "$temporary_directory/workshop-ustreamer.service" \
-    /etc/systemd/system/workshop-ustreamer.service
+    "$temporary_directory/workshop-streamer.service" \
+    /etc/systemd/system/workshop-streamer.service
 run_as_root systemctl daemon-reload
 run_as_root systemctl enable pigpiod.service workshop.target
 run_as_root systemctl restart workshop.target

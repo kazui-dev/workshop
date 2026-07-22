@@ -33,14 +33,14 @@ Python操作サーバーの停止時には終了処理でモーターを停止�
 個別に直近100件を確認する場合は次を使う。
 
 ```bash
-journalctl -b -u workshop-control.service -n 100 --no-pager
-journalctl -b -u workshop-ustreamer.service -n 100 --no-pager
+journalctl -b -u workshop-controller.service -n 100 --no-pager
+journalctl -b -u workshop-streamer.service -n 100 --no-pager
 journalctl -b -u pigpiod.service -n 100 --no-pager
 ```
 
 ### 操作信号の詳細ログ
 
-通常はWebSocketの接続、切断、警告だけを記録する。受信した左右PWM値も記録する場合は、`deploy/systemd/workshop-control.service.in` の `[Service]` に次を追加してから `./scripts/setup` を再実行する。
+通常はWebSocketの接続、切断、警告だけを記録する。受信した左右PWM値も記録する場合は、`systemd/workshop-controller.service.in` の `[Service]` に次を追加してから `./scripts/setup` を再実行する。
 
 ```ini
 Environment=LOG_LEVEL=DEBUG
@@ -82,8 +82,8 @@ http://<RASPBERRY_PI_IP>:8080/
 
 `workshop.target` がプロジェクト固有の2サービスをまとめる。
 
-- `workshop-control.service`: `src/main.py` を起動する
-- `workshop-ustreamer.service`: カメラ映像とWeb UIを配信する
+- `workshop-controller.service`: `src/main.py` を起動する
+- `workshop-streamer.service`: カメラ映像とWeb UIを配信する
 - `pigpiod.service`: Raspberry Pi OS側のGPIOデーモン
 
 clone先の絶対パスと実行ユーザーは `./scripts/setup` が検出し、`.service.in` から実機用unitを生成する。そのため、リポジトリを特定のホームディレクトリへ置く必要はない。

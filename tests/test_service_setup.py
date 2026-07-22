@@ -30,26 +30,28 @@ class ServiceSetupTest(unittest.TestCase):
             self.assertTrue(os.access(script_path, os.X_OK), script_path)
 
     def test_unit_templates_do_not_assume_a_clone_location_or_user(self) -> None:
-        systemd_directory = PROJECT_ROOT / "deploy" / "systemd"
-        control = (systemd_directory / "workshop-control.service.in").read_text()
-        ustreamer = (
-            systemd_directory / "workshop-ustreamer.service.in"
+        systemd_directory = PROJECT_ROOT / "systemd"
+        controller = (
+            systemd_directory / "workshop-controller.service.in"
+        ).read_text()
+        streamer = (
+            systemd_directory / "workshop-streamer.service.in"
         ).read_text()
 
-        self.assertIn("User=@WORKSHOP_USER@", control)
-        self.assertIn("WorkingDirectory=@WORKSHOP_ROOT@", control)
-        self.assertIn("ExecStart=@WORKSHOP_PYTHON@", control)
-        self.assertIn("User=@WORKSHOP_USER@", ustreamer)
-        self.assertIn("--static=@WORKSHOP_ROOT@/public", ustreamer)
-        self.assertNotIn("/home/pi/", control + ustreamer)
+        self.assertIn("User=@WORKSHOP_USER@", controller)
+        self.assertIn("WorkingDirectory=@WORKSHOP_ROOT@", controller)
+        self.assertIn("ExecStart=@WORKSHOP_PYTHON@", controller)
+        self.assertIn("User=@WORKSHOP_USER@", streamer)
+        self.assertIn("--static=@WORKSHOP_ROOT@/public", streamer)
+        self.assertNotIn("/home/pi/", controller + streamer)
 
     def test_target_starts_both_project_services(self) -> None:
         target = (
-            PROJECT_ROOT / "deploy" / "systemd" / "workshop.target"
+            PROJECT_ROOT / "systemd" / "workshop.target"
         ).read_text()
 
         self.assertIn(
-            "Requires=workshop-control.service workshop-ustreamer.service",
+            "Requires=workshop-controller.service workshop-streamer.service",
             target,
         )
         self.assertIn("Wants=pigpiod.service", target)
@@ -59,14 +61,14 @@ class ServiceSetupTest(unittest.TestCase):
 
         for service in (
             "pigpiod.service",
-            "workshop-control.service",
-            "workshop-ustreamer.service",
+            "workshop-controller.service",
+            "workshop-streamer.service",
         ):
             self.assertIn(service, start_script)
 
     @unittest.skipUnless(shutil.which("systemd-analyze"), "systemd is unavailable")
     def test_rendered_systemd_units_are_valid(self) -> None:
-        systemd_directory = PROJECT_ROOT / "deploy" / "systemd"
+        systemd_directory = PROJECT_ROOT / "systemd"
         replacements = {
             "@WORKSHOP_ROOT@": str(PROJECT_ROOT),
             "@WORKSHOP_USER@": "root",
@@ -77,8 +79,8 @@ class ServiceSetupTest(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir="/tmp") as directory:
             unit_directory = Path(directory)
             for source_name, destination_name in (
-                ("workshop-control.service.in", "workshop-control.service"),
-                ("workshop-ustreamer.service.in", "workshop-ustreamer.service"),
+                ("workshop-controller.service.in", "workshop-controller.service"),
+                ("workshop-streamer.service.in", "workshop-streamer.service"),
             ):
                 content = (systemd_directory / source_name).read_text()
                 for placeholder, value in replacements.items():
@@ -112,8 +114,8 @@ class ServiceSetupTest(unittest.TestCase):
                     "systemd-analyze",
                     "verify",
                     "workshop.target",
-                    "workshop-control.service",
-                    "workshop-ustreamer.service",
+                    "workshop-controller.service",
+                    "workshop-streamer.service",
                 ],
                 check=True,
                 env=environment,
