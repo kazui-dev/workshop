@@ -1,0 +1,16 @@
+[Unit]
+Description=Workshop camera and Web UI streamer
+After=network.target
+PartOf=workshop.target
+
+[Service]
+Type=simple
+User=@WORKSHOP_USER@
+SupplementaryGroups=video
+WorkingDirectory=@WORKSHOP_ROOT@
+ExecStart=@USTREAMER@ --device=/dev/video0 --host=0.0.0.0 --port=8080 --resolution=640x480 --desired-fps=16 --format=JPEG --encoder=HW --static=@WORKSHOP_ROOT@/public
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=workshop.target

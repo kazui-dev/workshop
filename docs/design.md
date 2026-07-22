@@ -66,8 +66,4 @@
 	- 前方左右のセンサは超音波の相互干渉を避けるため交互に計測する
 	- どちらか一方が障害物またはセンサ異常を検知した場合、前進成分を除去する
 
-pigpiodを自動起動に設定するコマンド
-```bash
-sudo systemctl enable pigpiod
-sudo systemctl start pigpiod
-```
+pigpiod、Python操作サーバー、ustreamerの自動起動設定は `./scripts/setup` で行い、`workshop.target` で一括操作する。

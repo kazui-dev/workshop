@@ -1,0 +1,19 @@
+[Unit]
+Description=Workshop operation controller
+Requires=pigpiod.service
+After=pigpiod.service
+PartOf=workshop.target
+
+[Service]
+Type=simple
+User=@WORKSHOP_USER@
+WorkingDirectory=@WORKSHOP_ROOT@
+Environment=PYTHONUNBUFFERED=1
+ExecStart=@WORKSHOP_PYTHON@ @WORKSHOP_ROOT@/src/main.py
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGINT
+TimeoutStopSec=10
+
+[Install]
+WantedBy=workshop.target
