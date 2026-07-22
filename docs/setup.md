@@ -2,18 +2,15 @@
 
 この手順は Raspberry Pi Zero WH と Raspberry Pi OS を前提とする。コマンドは Raspberry Pi 上で実行する。
 
-`./scripts/setup` はAPTパッケージやµStreamerをインストールしない。先にこのページの依存関係を準備してから実行する。
-
-## 1. 依存関係を用意する
-
-次のソフトウェアを先にインストールしておく。
+## 1. 依存関係のインストール
 
 - Git
-- Python 3とvenv
+- Python 3
+- venv
 - pigpio / pigpiod
 - µStreamer
 
-Git、Python、venv、pigpio / pigpiodはAPTでインストールできる。
+Git, Python, venv, pigpio / pigpiod は APT でインストールできる。
 
 ```bash
 sudo apt update
@@ -24,7 +21,7 @@ sudo apt install -y \
   pigpio
 ```
 
-µStreamerは既にインストールされていればそのまま利用する。未導入の場合は [µStreamer公式リポジトリ](https://github.com/pikvm/ustreamer) の手順に従ってインストールする。準備後、次のコマンドがすべて成功することを確認する。
+µStreamerは [公式リポジトリ](https://github.com/pikvm/ustreamer) の手順に従ってインストールする。準備後、次のコマンドがすべて成功することを確認する。
 
 ```bash
 git --version
@@ -44,8 +41,6 @@ git clone <REPOSITORY_URL>
 cd workshop
 ```
 
-既に配置済みの場合は、リポジトリのルートへ移動する。
-
 ## 3. 配線と設定値を確認する
 
 [配線と設定値](hardware.md) を確認し、左右モーター、前方左右2台の HC-SR04、圧電ブザーを `src/config.py` の設定に合わせて配線する。GPIO 番号は物理 PIN 番号ではなく BCM 番号として扱う。
@@ -62,7 +57,7 @@ USBカメラを接続し、デバイスを確認する。
 ls -l /dev/video0
 ```
 
-このプロジェクトのsystemd unitは `/dev/video0` を使用する。カメラが別の番号で認識される場合は、他のビデオデバイスを外してから再接続し、`/dev/video0` になることを確認する。
+このプロジェクトの systemd unitは `/dev/video0` を使用する。カメラが別の番号で認識される場合は、他のビデオデバイスを外してから再接続し、`/dev/video0` になることを確認する。
 
 ## 5. Python環境と自動起動をセットアップする
 
@@ -74,14 +69,12 @@ ls -l /dev/video0
 
 このスクリプトは次の処理を行う。
 
-- `.venv` の作成とPython依存パッケージのインストール
-- Raspberry Pi上でのsystemd unitの生成とインストール
+- `.venv` の作成と Python 依存パッケージのインストール
+- Raspberry Pi 上での systemd unit の生成とインストール
 - `pigpiod.service` と `workshop.target` の自動起動設定
-- pigpiod、Python操作サーバー、µStreamerの起動
+- pigpiod、Python 操作サーバー、 µStreamer の起動
 
-スクリプト全体を `sudo` で実行しない。systemdの設定が必要な処理だけ、スクリプト内からsudoパスワードを要求する。
-
-Raspberry Pi以外ではPython環境だけを作り、systemdは変更しない。明示的にPython環境だけを更新する場合は `./scripts/setup --no-services` を使う。
+Raspberry Pi 以外では Python 環境だけを作り、 systemd は変更しない。明示的に Python 環境だけを更新する場合は `./scripts/setup --no-services` を使う。
 
 ## 6. 起動を確認する
 
@@ -91,7 +84,7 @@ Raspberry Pi以外ではPython環境だけを作り、systemdは変更しない�
 
 pigpiod、Python操作サーバー、µStreamerが `active (running)` であることを確認する。続いて [運用手順](operations.md#スマートフォンからアクセスする) に従い、スマートフォンから映像表示と操作通信を確認する。
 
-## 7. 再起動後の自動起動を確認する
+## 7. 再起動後の systemd 自動起動を確認する
 
 ```bash
 sudo reboot

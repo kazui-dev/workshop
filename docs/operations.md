@@ -46,7 +46,7 @@ journalctl -b -u pigpiod.service -n 100 --no-pager
 Environment=LOG_LEVEL=DEBUG
 ```
 
-操作信号は操作中に50 ms間隔で記録されるため、調査後は設定を戻して再度 `./scripts/setup` を実行する。
+操作信号は操作中に 50 ms間隔で記録されるため、調査後は設定を戻して再度 `./scripts/setup` を実行する。
 
 ## スマートフォンからアクセスする
 
@@ -83,7 +83,7 @@ http://<RASPBERRY_PI_IP>:8080/
 `workshop.target` がプロジェクト固有の2サービスをまとめる。
 
 - `workshop-controller.service`: `src/main.py` を起動する
-- `workshop-streamer.service`: カメラ映像とWeb UIを配信する
-- `pigpiod.service`: Raspberry Pi OS側のGPIOデーモン
+- `workshop-streamer.service`: カメラ映像と Web UI を配信する
+- `pigpiod.service`: Raspberry Pi OS 側の GPIO デーモン
 
-clone先の絶対パスと実行ユーザーは `./scripts/setup` が検出し、`.service.in` から実機用unitを生成する。そのため、リポジトリを特定のホームディレクトリへ置く必要はない。
+clone先の絶対パスと実行ユーザーは `./scripts/setup` が検出し、`.service.in` から実機用 unit を生成する。そのため、リポジトリを特定のホームディレクトリへ置く必要はない。
