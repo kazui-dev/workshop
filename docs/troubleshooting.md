@@ -2,6 +2,37 @@
 
 問題が起きたら、電源と配線、pigpiod、Python WebSocket サーバー、ustreamer、スマートフォンの順に切り分ける。モーターや GPIO の配線を触る前に電源を切る。
 
+## setupが失敗する
+
+`./scripts/setup` はAPTパッケージやµStreamer本体をインストールしない。最初に [セットアップ手順の依存関係確認](setup.md#3-依存関係を確認する) をすべて実行する。
+
+### Python仮想環境を作れない
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-venv
+```
+
+インストール後に `./scripts/setup` を再実行する。
+
+### pigpiod.serviceが見つからない
+
+```bash
+sudo apt update
+sudo apt install -y pigpio
+systemctl cat pigpiod.service
+```
+
+unitが表示されたら `./scripts/setup` を再実行する。
+
+### ustreamerが見つからない
+
+```bash
+command -v ustreamer
+```
+
+何も表示されない場合は、[µStreamerのインストール手順](setup.md#2-µstreamerをインストールする)に従う。インストール後に `ustreamer --version` を確認し、`./scripts/setup` を再実行する。
+
 ## 映像が出ない
 
 1. `ls -l /dev/video*` でカメラデバイスを確認する。
