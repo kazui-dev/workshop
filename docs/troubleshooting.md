@@ -4,34 +4,18 @@
 
 ## setupが失敗する
 
-`./scripts/setup` はAPTパッケージやµStreamer本体をインストールしない。最初に [セットアップ手順の依存関係確認](setup.md#3-依存関係を確認する) をすべて実行する。
-
-### Python仮想環境を作れない
+`./scripts/setup` はAPTパッケージやµStreamer本体をインストールしない。[セットアップ手順の依存関係](setup.md#1-依存関係を用意する)を準備し、次の確認をすべて実行する。
 
 ```bash
-sudo apt update
-sudo apt install -y python3 python3-venv
+git --version
+python3 --version
+python3 -m venv --help >/dev/null
+pigpiod -v
+systemctl cat pigpiod.service >/dev/null
+ustreamer --version
 ```
 
-インストール後に `./scripts/setup` を再実行する。
-
-### pigpiod.serviceが見つからない
-
-```bash
-sudo apt update
-sudo apt install -y pigpio
-systemctl cat pigpiod.service
-```
-
-unitが表示されたら `./scripts/setup` を再実行する。
-
-### ustreamerが見つからない
-
-```bash
-command -v ustreamer
-```
-
-何も表示されない場合は、[µStreamerのインストール手順](setup.md#2-µstreamerをインストールする)に従う。インストール後に `ustreamer --version` を確認し、`./scripts/setup` を再実行する。
+失敗した依存関係をインストールした後、`./scripts/setup` を再実行する。
 
 ## 映像が出ない
 
