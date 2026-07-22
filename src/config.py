@@ -4,9 +4,18 @@ WEBSOCKET_PORT = 8765
 # intervals if operation updates cease.
 OPERATION_TIMEOUT_SECONDS = 0.15
 
-DISTANCE_TRIG_PIN = 22
-DISTANCE_ECHO_PIN = 27
+LEFT_DISTANCE_TRIG_PIN = 12
+LEFT_DISTANCE_ECHO_PIN = 16
+RIGHT_DISTANCE_TRIG_PIN = 20
+RIGHT_DISTANCE_ECHO_PIN = 21
+DISTANCE_SENSOR_PINS = (
+    ("left", LEFT_DISTANCE_TRIG_PIN, LEFT_DISTANCE_ECHO_PIN),
+    ("right", RIGHT_DISTANCE_TRIG_PIN, RIGHT_DISTANCE_ECHO_PIN),
+)
+DISTANCE_SENSOR_IDS = tuple(sensor_id for sensor_id, _, _ in DISTANCE_SENSOR_PINS)
 DISTANCE_TIMEOUT_SECONDS = 0.03
+# Keep triggers from the two front sensors far enough apart to avoid acoustic
+# cross-talk. Each individual sensor is therefore sampled about every 120 ms.
 DISTANCE_MEASUREMENT_INTERVAL_SECONDS = 0.06
 DISTANCE_MIN_CM = 2.0
 DISTANCE_MAX_CM = 400.0

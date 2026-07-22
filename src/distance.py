@@ -6,11 +6,9 @@ from types import TracebackType
 import pigpio
 
 from config import (
-    DISTANCE_ECHO_PIN,
     DISTANCE_MAX_CM,
     DISTANCE_MIN_CM,
     DISTANCE_TIMEOUT_SECONDS,
-    DISTANCE_TRIG_PIN,
 )
 
 SPEED_OF_SOUND_CM_PER_SECOND = 34300.0
@@ -19,9 +17,17 @@ SPEED_OF_SOUND_CM_PER_SECOND = 34300.0
 class DistanceSensor:
     """Measure HC-SR04 echo pulses using pigpiod edge timestamps."""
 
-    def __init__(self, pi: pigpio.pi | None = None) -> None:
+    def __init__(
+        self,
+        pi: pigpio.pi | None = None,
+        *,
+        trig_pin: int,
+        echo_pin: int,
+    ) -> None:
         self._pi = pi if pi is not None else pigpio.pi()
         self._owns_connection = pi is None
+        self._trig_pin = trig_pin
+        self._echo_pin = echo_pin
         self._closed = False
         self._measurement_lock = threading.Lock()
         self._echo_received = threading.Event()
@@ -37,11 +43,11 @@ class DistanceSensor:
             )
 
         try:
-            self._pi.set_mode(DISTANCE_TRIG_PIN, pigpio.OUTPUT)
-            self._pi.set_mode(DISTANCE_ECHO_PIN, pigpio.INPUT)
-            self._pi.write(DISTANCE_TRIG_PIN, 0)
+            self._pi.set_mode(self._trig_pin, pigpio.OUTPUT)
+            self._pi.set_mode(self._echo_pin, pigpio.INPUT)
+            self._pi.write(self._trig_pin, 0)
             self._callback = self._pi.callback(
-                DISTANCE_ECHO_PIN,
+                self._echo_pin,
                 pigpio.EITHER_EDGE,
                 self._handle_echo_edge,
             )
@@ -63,7 +69,8 @@ class DistanceSensor:
         self.close()
 
     def _handle_echo_edge(self, gpio: int, level: int, tick: int) -> None:
-        del gpio
+        if gpio != self._echo_pin:
+            return
 
         if level == 1:
             self._rising_tick = tick
@@ -88,7 +95,7 @@ class DistanceSensor:
             self._rising_tick = None
             self._pulse_width_us = None
             self._echo_received.clear()
-            self._pi.gpio_trigger(DISTANCE_TRIG_PIN, 10, 1)
+            self._pi.gpio_trigger(self._trig_pin, 10, 1)
 
             if not self._echo_received.wait(DISTANCE_TIMEOUT_SECONDS):
                 return None

@@ -1,11 +1,12 @@
 import asyncio
 import logging
 import os
+from contextlib import ExitStack
 
 import pigpio
 
 from buzzer import Buzzer
-from config import DISTANCE_MEASUREMENT_INTERVAL_SECONDS
+from config import DISTANCE_MEASUREMENT_INTERVAL_SECONDS, DISTANCE_SENSOR_PINS
 from distance import DistanceSensor
 from motor import MotorDriver
 from safety import SafetyController
@@ -14,14 +15,15 @@ from server import OperationServer
 logger = logging.getLogger(__name__)
 
 
-async def monitor_distance(
-    distance_sensor: DistanceSensor,
+async def monitor_distances(
+    distance_sensors: tuple[tuple[str, DistanceSensor], ...],
     safety: SafetyController,
 ) -> None:
     while True:
-        distance_cm = await asyncio.to_thread(distance_sensor.measure_distance_cm)
-        safety.update_distance(distance_cm)
-        await asyncio.sleep(DISTANCE_MEASUREMENT_INTERVAL_SECONDS)
+        for sensor_id, distance_sensor in distance_sensors:
+            distance_cm = await asyncio.to_thread(distance_sensor.measure_distance_cm)
+            safety.update_distance(sensor_id, distance_cm)
+            await asyncio.sleep(DISTANCE_MEASUREMENT_INTERVAL_SECONDS)
 
 
 async def main() -> None:
@@ -34,16 +36,27 @@ async def main() -> None:
         )
 
     try:
-        with (
-            MotorDriver(pi) as motor,
-            DistanceSensor(pi) as distance_sensor,
-            Buzzer(pi) as buzzer,
-        ):
+        with ExitStack() as stack:
+            motor = stack.enter_context(MotorDriver(pi))
+            distance_sensors = tuple(
+                (
+                    sensor_id,
+                    stack.enter_context(
+                        DistanceSensor(
+                            pi,
+                            trig_pin=trig_pin,
+                            echo_pin=echo_pin,
+                        )
+                    ),
+                )
+                for sensor_id, trig_pin, echo_pin in DISTANCE_SENSOR_PINS
+            )
+            buzzer = stack.enter_context(Buzzer(pi))
             safety = SafetyController(motor, buzzer)
             server = OperationServer(safety)
             server_task = asyncio.create_task(server.run())
             monitor_task = asyncio.create_task(
-                monitor_distance(distance_sensor, safety)
+                monitor_distances(distance_sensors, safety)
             )
             tasks = (server_task, monitor_task)
             try:
@@ -66,9 +79,7 @@ if __name__ == "__main__":
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
-    logging.getLogger("server").setLevel(
-        os.environ.get("LOG_LEVEL", "INFO").upper()
-    )
+    logging.getLogger("server").setLevel(os.environ.get("LOG_LEVEL", "INFO").upper())
 
     try:
         asyncio.run(main())
