@@ -43,6 +43,22 @@ class SafetyControllerTest(unittest.TestCase):
         self.safety.disconnected()
         self.assertEqual(self.motor.stop_count, 2)
 
+    def test_forward_is_blocked_until_all_sensors_report_clear(self) -> None:
+        self.safety.apply_operation(100, 100)
+        self.safety.update_distance("left", OBSTACLE_CLEAR_DISTANCE_CM)
+        self.safety.update_distance("right", OBSTACLE_CLEAR_DISTANCE_CM - 1)
+        self.safety.apply_operation(100, 100)
+        self.safety.update_distance("right", OBSTACLE_CLEAR_DISTANCE_CM)
+        self.safety.apply_operation(100, 100)
+
+        self.assertEqual(self.motor.operations, [(0, 0), (0, 0), (100, 100)])
+
+    def test_startup_interlock_allows_reverse_and_rotation(self) -> None:
+        self.safety.apply_operation(-100, -100)
+        self.safety.apply_operation(100, -100)
+
+        self.assertEqual(self.motor.operations, [(-100, -100), (100, -100)])
+
     def test_obstacle_stops_motor_and_starts_buzzer_once(self) -> None:
         self.safety.update_distance("left", OBSTACLE_DISTANCE_CM)
         self.safety.update_distance("left", OBSTACLE_DISTANCE_CM - 1)

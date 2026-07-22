@@ -41,6 +41,7 @@ class SafetyController:
         self._motor = motor
         self._buzzer = buzzer
         self._obstacle_detected = False
+        self._unverified_sensor_ids = set(sensor_ids)
         self._distance_states = {
             sensor_id: _DistanceState() for sensor_id in sensor_ids
         }
@@ -59,7 +60,7 @@ class SafetyController:
         return round(left - forward_component), round(right - forward_component)
 
     def apply_operation(self, left: int, right: int) -> None:
-        if self._obstacle_detected:
+        if self._obstacle_detected or self._unverified_sensor_ids:
             left, right = self.remove_forward_component(left, right)
         self._motor.set_pwm(left, right)
 
@@ -81,6 +82,8 @@ class SafetyController:
                 state.obstacle_detected = True
         else:
             state.invalid_count = 0
+            if distance_cm >= OBSTACLE_CLEAR_DISTANCE_CM:
+                self._unverified_sensor_ids.discard(sensor_id)
             if state.obstacle_detected:
                 state.obstacle_detected = distance_cm < OBSTACLE_CLEAR_DISTANCE_CM
             else:
