@@ -2,7 +2,18 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from config import DISTANCE_INVALID_LIMIT, OBSTACLE_CLEAR_DISTANCE_CM, OBSTACLE_DISTANCE_CM
+from config import (
+    DISTANCE_INVALID_LIMIT,
+    DISTANCE_SENSOR_IDS,
+    OBSTACLE_CLEAR_DISTANCE_CM,
+    OBSTACLE_DISTANCE_CM,
+)
+
+
+class _DistanceState:
+    def __init__(self) -> None:
+        self.obstacle_detected = False
+        self.invalid_count = 0
 
 
 class MotorController(Protocol):
@@ -22,11 +33,17 @@ class SafetyController:
         self,
         motor: MotorController,
         buzzer: WarningController,
+        sensor_ids: tuple[str, ...] = DISTANCE_SENSOR_IDS,
     ) -> None:
+        if not sensor_ids:
+            raise ValueError("at least one distance sensor is required")
+
         self._motor = motor
         self._buzzer = buzzer
         self._obstacle_detected = False
-        self._invalid_distance_count = 0
+        self._distance_states = {
+            sensor_id: _DistanceState() for sensor_id in sensor_ids
+        }
 
     @property
     def obstacle_detected(self) -> bool:
@@ -52,19 +69,29 @@ class SafetyController:
     def disconnected(self) -> None:
         self._motor.stop()
 
-    def update_distance(self, distance_cm: float | None) -> None:
-        if distance_cm is None:
-            self._invalid_distance_count += 1
-            if self._invalid_distance_count >= DISTANCE_INVALID_LIMIT:
-                self._set_obstacle_detected(True)
-            return
+    def update_distance(self, sensor_id: str, distance_cm: float | None) -> None:
+        try:
+            state = self._distance_states[sensor_id]
+        except KeyError as exc:
+            raise ValueError(f"unknown distance sensor: {sensor_id}") from exc
 
-        self._invalid_distance_count = 0
-        if self._obstacle_detected:
-            obstacle_detected = distance_cm < OBSTACLE_CLEAR_DISTANCE_CM
+        if distance_cm is None:
+            state.invalid_count += 1
+            if state.invalid_count >= DISTANCE_INVALID_LIMIT:
+                state.obstacle_detected = True
         else:
-            obstacle_detected = distance_cm <= OBSTACLE_DISTANCE_CM
-        self._set_obstacle_detected(obstacle_detected)
+            state.invalid_count = 0
+            if state.obstacle_detected:
+                state.obstacle_detected = distance_cm < OBSTACLE_CLEAR_DISTANCE_CM
+            else:
+                state.obstacle_detected = distance_cm <= OBSTACLE_DISTANCE_CM
+
+        self._set_obstacle_detected(
+            any(
+                sensor_state.obstacle_detected
+                for sensor_state in self._distance_states.values()
+            )
+        )
 
     def _set_obstacle_detected(self, obstacle_detected: bool) -> None:
         if obstacle_detected == self._obstacle_detected:
