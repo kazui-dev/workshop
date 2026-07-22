@@ -106,6 +106,12 @@ class OperationServer:
                 except ConnectionClosed:
                     break
 
+                logger.info(
+                    "Received operation message from %s: %r",
+                    remote_address,
+                    message,
+                )
+
                 try:
                     left, right = _parse_operation_message(message)
                 except ValueError as exc:
@@ -117,7 +123,10 @@ class OperationServer:
                     continue
 
                 self._controller.apply_operation(left, right)
-                operation_deadline = loop.time() + OPERATION_TIMEOUT_SECONDS
+                if left == 0 and right == 0:
+                    operation_deadline = None
+                else:
+                    operation_deadline = loop.time() + OPERATION_TIMEOUT_SECONDS
         finally:
             try:
                 self._controller.disconnected()
