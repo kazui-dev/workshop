@@ -23,18 +23,7 @@ ustreamer --version
 
 `python3 -m venv` が使えない場合は、OS のパッケージマネージャーで `python3-venv` を追加する。
 
-## 3. Python 環境を作る
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
-```
-
-以後、Python 側を起動するターミナルでは先に `source .venv/bin/activate` を実行する。
-
-## 4. 配線と設定値を確認する
+## 3. 配線と設定値を確認する
 
 [配線と設定値](hardware.md) を確認し、左右モーター、前方左右2台の HC-SR04、圧電ブザーを `src/config.py` の設定に合わせて配線する。GPIO 番号は物理 PIN 番号ではなく BCM 番号として扱う。
 
@@ -42,7 +31,7 @@ python3 -m pip install -r requirements.txt
 
 HC-SR04 の Echo は 5 V のため、2台それぞれに分圧回路またはレベル変換を用意し、3.3 V にしてから GPIO へ接続する。
 
-## 5. カメラを確認する
+## 4. カメラを確認する
 
 USB カメラを接続し、デバイスを確認する。
 
@@ -52,6 +41,39 @@ ls -l /dev/video*
 
 想定するカメラが `/dev/video0` 以外の場合は、ustreamer の `--device` を実際のパスへ変更する。
 
+## 5. セットアップと自動起動設定を行う
+
+車体を浮かせるかモーター用電源を切った状態で実行する。
+
+```bash
+./scripts/setup
+```
+
+このスクリプトは次の処理を行う。
+
+- `.venv` の作成と Python 依存パッケージのインストール
+- Raspberry Pi 上での systemd unit のインストール
+- `pigpiod.service` と `workshop.target` の自動起動設定
+- pigpiod、Python操作サーバー、ustreamerの起動
+
+スクリプト全体を `sudo` で実行しない。systemd の設定が必要な処理だけ、スクリプト内から `sudo` を呼び出す。
+
+Raspberry Pi 以外では Python 環境だけを作り、systemd は変更しない。明示的に Python 環境だけを更新する場合は `./scripts/setup --no-services` を使う。
+
 ## 6. 起動確認をする
 
-[運用手順](operations.md) に従い、pigpiod、Python WebSocket サーバー、ustreamer の順で起動する。スマートフォンから Web UI を開き、映像表示と操作通信を確認する。
+状態を確認する。
+
+```bash
+./scripts/status
+```
+
+pigpiod、Python操作サーバー、ustreamerが `active (running)` であることを確認する。続いてスマートフォンから Web UI を開き、映像表示と操作通信を確認する。詳しい確認方法は [運用手順](operations.md) を参照する。
+
+## 7. 再起動後の自動起動を確認する
+
+```bash
+sudo reboot
+```
+
+再接続後に `./scripts/status` を実行し、すべてのサービスが自動的に起動していることを確認する。

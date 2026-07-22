@@ -17,8 +17,7 @@ ustreamer --device=/dev/video0 --host=0.0.0.0 --port=8080 --resolution=640x480 -
 
 Raspberry Pi への導入とカメラデバイスの確認は [セットアップ手順](setup.md)、起動・停止・ログ確認は [運用手順](operations.md) を参照する。
 
-systemd で自動起動する場合は、`--static=public` のような相対パスに依存しないようにする。
-unit ファイルで `WorkingDirectory` を指定するか、 `--static` に絶対パスを指定する。
+`./scripts/setup` が生成するsystemd unitでは、clone先の絶対パスを `WorkingDirectory` と `--static` に設定する。
 
 ## 採用構成
 

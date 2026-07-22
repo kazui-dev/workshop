@@ -17,23 +17,17 @@ Raspberry Pi Zero WH を載せたキャタピラ式ラジコンを、同じ Wi-F
 
 ## クイックスタート
 
-最初に [セットアップ手順](docs/setup.md) を完了してください。Raspberry Pi 上で、リポジトリのルートから次の 3 プロセスを起動します。
+Raspberry Pi 上で [セットアップ手順](docs/setup.md) に従って OS 側の依存関係、配線、カメラを準備した後、リポジトリのルートで実行します。
 
 ```bash
-sudo systemctl start pigpiod
-source .venv/bin/activate
-python3 src/main.py
+./scripts/setup
 ```
 
-別のターミナルで映像と Web UI を配信します。
-
-```bash
-ustreamer --device=/dev/video0 --host=0.0.0.0 --port=8080 --resolution=640x480 --desired-fps=16 --format=JPEG --encoder=HW --static=public
-```
+`setup` は Python 仮想環境を作成し、Raspberry Pi 上では pigpiod、操作サーバー、ustreamer の systemd 設定もインストールします。セットアップ完了後は3つのプロセスが起動し、Raspberry Pi の再起動後も自動的に立ち上がります。
 
 Raspberry Pi と同じ Wi-Fi に接続したスマートフォンで、`http://<RASPBERRY_PI_IP>:8080/` を開きます。`<RASPBERRY_PI_IP>` は Raspberry Pi の IP アドレスに置き換えてください。
 
-起動確認、停止、ログ確認、手動復旧は [運用手順](docs/operations.md) を参照してください。
+一括起動、停止、再起動、状態確認、ログ確認は [運用手順](docs/operations.md) を参照してください。
 
 ## ドキュメント
 
@@ -48,10 +42,10 @@ Raspberry Pi と同じ Wi-Fi に接続したスマートフォンで、`http://<
 
 ```text
 workshop/
+├── deploy/systemd/  # 自動起動用の systemd unit
 ├── public/          # ustreamer が配信する Web UI
+├── scripts/         # セットアップとサービス操作
 ├── src/             # WebSocket サーバーとモーター制御
 ├── docs/            # セットアップ、運用、設計資料
 └── requirements.txt # Python 依存パッケージ
 ```
-
-自動起動用の systemd unit は現在の `develop` ブランチには含まれていません。再起動後は [手動復旧手順](docs/operations.md#raspberry-pi-再起動後の手動復旧) に従ってください。
