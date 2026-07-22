@@ -1,19 +1,19 @@
 const MAX_PWM = 255;
 const PWM_SEND_INTERVAL_MS = 50;
 const WEBSOCKET_RECONNECT_DELAY_MS = 1000;
-const STOP_PWM = Object.freeze({ left: 0, right: 0 });
+const STOP_PWM = Object.freeze({ leftMotorPwm: 0, rightMotorPwm: 0 });
 
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
 
 function calculatePWM(x, y) {
-    const left = clamp(y + x, -1, 1);
-    const right = clamp(y - x, -1, 1);
+    const leftMotorPwm = clamp(y + x, -1, 1);
+    const rightMotorPwm = clamp(y - x, -1, 1);
 
     return {
-        left: Math.round(left * MAX_PWM),
-        right: Math.round(right * MAX_PWM)
+        leftMotorPwm: Math.round(leftMotorPwm * MAX_PWM),
+        rightMotorPwm: Math.round(rightMotorPwm * MAX_PWM)
     };
 }
 

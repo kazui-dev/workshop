@@ -36,24 +36,30 @@ def _parse_operation_message(message: str | bytes) -> tuple[int, int]:
     if not isinstance(payload, dict):
         raise ValueError("message must be a JSON object")
 
-    if "left" not in payload or "right" not in payload:
-        raise ValueError("message must contain left and right")
+    if "leftMotorPwm" not in payload or "rightMotorPwm" not in payload:
+        raise ValueError("message must contain leftMotorPwm and rightMotorPwm")
 
-    left = payload["left"]
-    right = payload["right"]
+    left_motor_pwm = payload["leftMotorPwm"]
+    right_motor_pwm = payload["rightMotorPwm"]
 
     if (
-        isinstance(left, bool)
-        or not isinstance(left, int)
-        or isinstance(right, bool)
-        or not isinstance(right, int)
+        isinstance(left_motor_pwm, bool)
+        or not isinstance(left_motor_pwm, int)
+        or isinstance(right_motor_pwm, bool)
+        or not isinstance(right_motor_pwm, int)
     ):
-        raise ValueError("left and right must be integers")
+        raise ValueError("leftMotorPwm and rightMotorPwm must be integers")
 
-    if not PWM_MIN <= left <= PWM_MAX or not PWM_MIN <= right <= PWM_MAX:
-        raise ValueError(f"left and right must be between {PWM_MIN} and {PWM_MAX}")
+    if (
+        not PWM_MIN <= left_motor_pwm <= PWM_MAX
+        or not PWM_MIN <= right_motor_pwm <= PWM_MAX
+    ):
+        raise ValueError(
+            "leftMotorPwm and rightMotorPwm must be between "
+            f"{PWM_MIN} and {PWM_MAX}"
+        )
 
-    return left, right
+    return left_motor_pwm, right_motor_pwm
 
 
 class OperationServer:
