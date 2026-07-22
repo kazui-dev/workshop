@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+# shellcheck source=_common.sh
+source "$SCRIPT_DIR/_common.sh"
+
+require_installed_services
+run_as_root journalctl -b -f \
+    -u pigpiod.service \
+    -u workshop-controller.service \
+    -u workshop-streamer.service

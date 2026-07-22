@@ -2,7 +2,7 @@
 
 Raspberry Pi 上では ustreamer を使い、カメラ映像とスマホ操作用の静的 Web UI を同じ HTTP サーバーから配信する。
 
-起動コマンド:
+systemdの `workshop-streamer.service` が実行するコマンドは、次の設定に相当する。通常運用ではこのコマンドを手動実行せず、[運用スクリプト](operations.md#一括操作)を使う。
 
 ```bash
 ustreamer --device=/dev/video0 --host=0.0.0.0 --port=8080 --resolution=640x480 --desired-fps=16 --format=JPEG --encoder=HW --static=public
@@ -15,10 +15,11 @@ ustreamer --device=/dev/video0 --host=0.0.0.0 --port=8080 --resolution=640x480 -
 
 操作命令用の Python WebSocket サーバーは別プロセスで起動し、ポート `8765` を使う。
 
-Raspberry Pi への導入とカメラデバイスの確認は [セットアップ手順](setup.md)、起動・停止・ログ確認は [運用手順](operations.md) を参照する。
+µStreamerのインストールとカメラデバイスの確認は [セットアップ手順](setup.md)、起動・停止・ログ確認は [運用手順](operations.md) を参照する。
 
-systemd で自動起動する場合は、`--static=public` のような相対パスに依存しないようにする。
-unit ファイルで `WorkingDirectory` を指定するか、 `--static` に絶対パスを指定する。
+既に利用可能なµStreamerがある場合、`./scripts/setup` はその実行ファイルをsystemd unitへ設定する。µStreamer本体のインストールや更新は行わない。
+
+`./scripts/setup` が生成するsystemd unitでは、clone先の絶対パスを `WorkingDirectory` と `--static` に設定する。
 
 ## 採用構成
 

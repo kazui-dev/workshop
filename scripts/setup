@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+# shellcheck source=_common.sh
+source "$SCRIPT_DIR/_common.sh"
+
+usage() {
+    cat <<'EOF'
+Usage: ./scripts/setup [--services|--no-services]
+
+Create the Python virtual environment and install dependencies. On a
+Raspberry Pi, systemd services are also installed and enabled automatically.
+
+  --services     install systemd services even when Raspberry Pi detection fails
+  --no-services  only prepare the Python environment
+EOF
+}
+
+service_mode=auto
+case "${1:-}" in
+    "") ;;
+    --services) service_mode=enabled ;;
+    --no-services) service_mode=disabled ;;
+    -h|--help)
+        usage
+        exit 0
+        ;;
+    *)
+        usage >&2
+        exit 2
+        ;;
+esac
+
+if (( EUID == 0 )); then
+    echo "Run this script as your login user, without sudo." >&2
+    echo "It will request sudo only when installing systemd services." >&2
+    exit 1
+fi
+
+python_command=${PYTHON:-python3}
+if ! command -v "$python_command" >/dev/null 2>&1; then
+    echo "Python was not found: $python_command" >&2
+    exit 1
+fi
+
+echo "Creating Python environment in $WORKSHOP_ROOT/.venv"
+"$python_command" -m venv "$WORKSHOP_ROOT/.venv"
+"$WORKSHOP_ROOT/.venv/bin/python" -m pip install --upgrade pip
+"$WORKSHOP_ROOT/.venv/bin/python" -m pip install -r "$WORKSHOP_ROOT/requirements.txt"
+
+is_raspberry_pi=false
+if [[ -r /proc/device-tree/model ]] && grep -a -q "Raspberry Pi" /proc/device-tree/model; then
+    is_raspberry_pi=true
+fi
+
+install_services=false
+case "$service_mode" in
+    enabled) install_services=true ;;
+    disabled) install_services=false ;;
+    auto) install_services=$is_raspberry_pi ;;
+esac
+
+if [[ "$install_services" != true ]]; then
+    echo "Python setup complete. Systemd services were not installed."
+    exit 0
+fi
+
+for command in systemctl sudo ustreamer; do
+    if ! command -v "$command" >/dev/null 2>&1; then
+        echo "Required command was not found: $command" >&2
+        exit 1
+    fi
+done
+
+if ! systemctl cat pigpiod.service >/dev/null 2>&1; then
+    echo "pigpiod.service was not found. Install pigpio/pigpiod first." >&2
+    exit 1
+fi
+
+workshop_user=$(id -un)
+workshop_python="$WORKSHOP_ROOT/.venv/bin/python"
+ustreamer_command=$(command -v ustreamer)
+
+for value in "$WORKSHOP_ROOT" "$workshop_user" "$workshop_python" "$ustreamer_command"; do
+    if [[ "$value" =~ [[:space:]@\&\|] || "$value" == *'\'* ]]; then
+        echo "Unsupported character in service setting: $value" >&2
+        echo "Use a clone path and user name without whitespace or shell metacharacters." >&2
+        exit 1
+    fi
+done
+
+temporary_directory=$(mktemp -d)
+cleanup() {
+    rm -f -- "$temporary_directory/workshop-controller.service"
+    rm -f -- "$temporary_directory/workshop-streamer.service"
+    rmdir -- "$temporary_directory"
+}
+trap cleanup EXIT
+
+render_unit() {
+    local source_file=$1
+    local destination_file=$2
+
+    sed \
+        -e "s|@WORKSHOP_ROOT@|$WORKSHOP_ROOT|g" \
+        -e "s|@WORKSHOP_USER@|$workshop_user|g" \
+        -e "s|@WORKSHOP_PYTHON@|$workshop_python|g" \
+        -e "s|@USTREAMER@|$ustreamer_command|g" \
+        "$source_file" >"$destination_file"
+}
+
+render_unit \
+    "$WORKSHOP_ROOT/systemd/workshop-controller.service.in" \
+    "$temporary_directory/workshop-controller.service"
+render_unit \
+    "$WORKSHOP_ROOT/systemd/workshop-streamer.service.in" \
+    "$temporary_directory/workshop-streamer.service"
+
+echo "Installing and enabling Workshop systemd services"
+run_as_root install -m 0644 \
+    "$WORKSHOP_ROOT/systemd/workshop.target" \
+    /etc/systemd/system/workshop.target
+run_as_root install -m 0644 \
+    "$temporary_directory/workshop-controller.service" \
+    /etc/systemd/system/workshop-controller.service
+run_as_root install -m 0644 \
+    "$temporary_directory/workshop-streamer.service" \
+    /etc/systemd/system/workshop-streamer.service
+run_as_root systemctl daemon-reload
+run_as_root systemctl enable pigpiod.service workshop.target
+run_as_root systemctl restart workshop.target
+
+echo "Setup complete. Workshop will start automatically after reboot."
+"$SCRIPT_DIR/status"

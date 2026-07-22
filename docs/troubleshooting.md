@@ -2,11 +2,26 @@
 
 問題が起きたら、電源と配線、pigpiod、Python WebSocket サーバー、ustreamer、スマートフォンの順に切り分ける。モーターや GPIO の配線を触る前に電源を切る。
 
+## setupが失敗する
+
+`./scripts/setup` はAPTパッケージやµStreamer本体をインストールしない。[セットアップ手順の依存関係](setup.md#1-依存関係を用意する)を準備し、次の確認をすべて実行する。
+
+```bash
+git --version
+python3 --version
+python3 -m venv --help >/dev/null
+pigpiod -v
+systemctl cat pigpiod.service >/dev/null
+ustreamer --version
+```
+
+失敗した依存関係をインストールした後、`./scripts/setup` を再実行する。
+
 ## 映像が出ない
 
 1. `ls -l /dev/video*` でカメラデバイスを確認する。
 2. `--device=/dev/video0` が実際のデバイスと一致するか確認する。
-3. `tail -n 100 workshop-ustreamer.log` で起動エラーを確認する。
+3. `./scripts/logs` でustreamerの起動エラーを確認する。
 4. `curl -I http://127.0.0.1:8080/` を Raspberry Pi 上で実行し、HTTP 応答を確認する。
 5. 別プロセスがポート `8080` やカメラを使用していないか確認する。
 6. `--encoder=HW` で起動できない場合は、ハードウェア対応状況を確認するため一時的にこの指定を外して比較する。
@@ -25,17 +40,17 @@
 状態とログを確認する。
 
 ```bash
-systemctl status pigpiod --no-pager
-journalctl -u pigpiod -n 100 --no-pager
+./scripts/status
+./scripts/logs
 ```
 
-停止していれば起動する。
+停止していれば全体を安全な順序で再起動する。
 
 ```bash
-sudo systemctl start pigpiod
+./scripts/restart
 ```
 
-その後、Python WebSocket サーバーを起動し直す。`src/main.py` と pigpiod を異なるホストで動かす構成は現在想定していない。
+`src/main.py` と pigpiod を異なるホストで動かす構成は現在想定していない。
 
 ## モーターが動かない、または向きが逆
 
