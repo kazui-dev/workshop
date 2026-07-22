@@ -99,6 +99,11 @@ class SafetyController:
 
         self._obstacle_detected = obstacle_detected
         if obstacle_detected:
+            # Require a fresh clear reading from every sensor before releasing
+            # the global safety latch, including sensors that were previously
+            # between the detection and clear thresholds.
+            for state in self._distance_states.values():
+                state.obstacle_detected = True
             self._motor.stop()
             self._buzzer.start()
         else:

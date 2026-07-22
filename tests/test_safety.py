@@ -53,6 +53,7 @@ class SafetyControllerTest(unittest.TestCase):
     def test_clearing_obstacle_stops_buzzer_and_restores_operation(self) -> None:
         self.safety.update_distance("left", OBSTACLE_DISTANCE_CM - 1)
         self.safety.update_distance("left", OBSTACLE_CLEAR_DISTANCE_CM)
+        self.safety.update_distance("right", OBSTACLE_CLEAR_DISTANCE_CM)
         self.safety.apply_operation(100, 100)
         self.assertFalse(self.safety.obstacle_detected)
         self.assertEqual(self.buzzer.stop_count, 1)
@@ -65,6 +66,7 @@ class SafetyControllerTest(unittest.TestCase):
         self.assertEqual(self.buzzer.stop_count, 0)
 
         self.safety.update_distance("left", OBSTACLE_CLEAR_DISTANCE_CM)
+        self.safety.update_distance("right", OBSTACLE_CLEAR_DISTANCE_CM)
         self.assertFalse(self.safety.obstacle_detected)
         self.assertEqual(self.buzzer.stop_count, 1)
 
@@ -103,6 +105,18 @@ class SafetyControllerTest(unittest.TestCase):
     def test_one_clear_sensor_does_not_clear_the_other_obstacle(self) -> None:
         self.safety.update_distance("left", OBSTACLE_DISTANCE_CM - 1)
         self.safety.update_distance("right", OBSTACLE_DISTANCE_CM - 1)
+
+        self.safety.update_distance("left", OBSTACLE_CLEAR_DISTANCE_CM)
+        self.assertTrue(self.safety.obstacle_detected)
+        self.assertEqual(self.buzzer.stop_count, 0)
+
+        self.safety.update_distance("right", OBSTACLE_CLEAR_DISTANCE_CM)
+        self.assertFalse(self.safety.obstacle_detected)
+        self.assertEqual(self.buzzer.stop_count, 1)
+
+    def test_all_sensors_must_reach_clear_distance_after_detection(self) -> None:
+        self.safety.update_distance("right", OBSTACLE_DISTANCE_CM + 1)
+        self.safety.update_distance("left", OBSTACLE_DISTANCE_CM)
 
         self.safety.update_distance("left", OBSTACLE_CLEAR_DISTANCE_CM)
         self.assertTrue(self.safety.obstacle_detected)
