@@ -79,6 +79,16 @@ journalctl -u pigpiod -n 100 --no-pager
 journalctl -u pigpiod -f
 ```
 
+### 操作信号の詳細ログ
+
+通常起動では、WebSocket の接続、切断、警告を表示する。受信した左右 PWM 値を確認する場合は、Python WebSocket サーバーを次のように起動して DEBUG ログを有効にする。
+
+```bash
+LOG_LEVEL=DEBUG python3 src/main.py 2>&1 | tee workshop-control-debug.log
+```
+
+操作信号の DEBUG ログは操作中に 50 ms 間隔で出力される。ログ量が多くなるため、通常運転では有効にしない。
+
 ## Raspberry Pi 再起動後の手動復旧
 
 1. `sudo systemctl start pigpiod` を実行する。

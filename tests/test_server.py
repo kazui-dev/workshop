@@ -1,6 +1,7 @@
 import asyncio
 import unittest
 
+from config import OPERATION_TIMEOUT_SECONDS
 from server import OperationServer, _parse_operation_message
 
 
@@ -79,7 +80,7 @@ class OperationServerTest(unittest.IsolatedAsyncioTestCase):
         task = asyncio.create_task(server.handle_connection(websocket))  # type: ignore[arg-type]
         while len(controller.operations) < 2:
             await asyncio.sleep(0)
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(OPERATION_TIMEOUT_SECONDS + 0.1)
 
         self.assertEqual(controller.operations, [(10, -20), (0, 0)])
         self.assertFalse(controller.timeout_called.is_set())
@@ -88,13 +89,13 @@ class OperationServerTest(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(asyncio.CancelledError):
             await task
 
-    async def test_logs_every_received_message(self) -> None:
+    async def test_debug_logs_every_received_message(self) -> None:
         controller = FakeController()
         server = OperationServer(controller)
         message = '{"left": 10, "right": -20}'
         websocket = FakeWebSocket([message])
 
-        with self.assertLogs("server", level="INFO") as logs:
+        with self.assertLogs("server", level="DEBUG") as logs:
             task = asyncio.create_task(
                 server.handle_connection(websocket)  # type: ignore[arg-type]
             )

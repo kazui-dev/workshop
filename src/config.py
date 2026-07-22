@@ -1,8 +1,8 @@
 WEBSOCKET_HOST = "0.0.0.0"
 WEBSOCKET_PORT = 8765
-# The browser sends operation messages every 50ms. Allow enough margin for
-# mobile browser timer throttling and transient Wi-Fi jitter.
-OPERATION_TIMEOUT_SECONDS = 0.5
+# The browser sends operation messages every 50ms. Stop within three send
+# intervals if operation updates cease.
+OPERATION_TIMEOUT_SECONDS = 0.15
 
 DISTANCE_TRIG_PIN = 22
 DISTANCE_ECHO_PIN = 27

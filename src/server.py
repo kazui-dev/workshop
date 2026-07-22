@@ -106,7 +106,7 @@ class OperationServer:
                 except ConnectionClosed:
                     break
 
-                logger.info(
+                logger.debug(
                     "Received operation message from %s: %r",
                     remote_address,
                     message,
