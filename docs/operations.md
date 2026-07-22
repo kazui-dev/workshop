@@ -48,6 +48,8 @@ http://<RASPBERRY_PI_IP>:8080/
 
 映像が表示され、ジョイスティック操作時に Python 側へ WebSocket 接続ログが出れば、映像表示と操作通信は成功している。初回のモーター確認は車体を浮かせて行う。
 
+HC-SR04 の正面 20 cm 以内に障害物を置くとモーターが停止してブザーが鳴り、前進操作が抑止されることも確認する。この状態でも後退とその場旋回は可能で、障害物を 25 cm 以上に離すと通常操作へ戻る。
+
 ## 停止と再起動
 
 Python WebSocket サーバーと ustreamer は、それぞれを起動したターミナルで `Ctrl+C` を押して停止する。Python 側は終了処理でモーターを停止する。
@@ -76,6 +78,16 @@ pigpiod の systemd ログは次で確認する。
 journalctl -u pigpiod -n 100 --no-pager
 journalctl -u pigpiod -f
 ```
+
+### 操作信号の詳細ログ
+
+通常起動では、WebSocket の接続、切断、警告を表示する。受信した左右 PWM 値を確認する場合は、Python WebSocket サーバーを次のように起動して DEBUG ログを有効にする。
+
+```bash
+LOG_LEVEL=DEBUG python3 src/main.py 2>&1 | tee workshop-control-debug.log
+```
+
+操作信号の DEBUG ログは操作中に 50 ms 間隔で出力される。ログ量が多くなるため、通常運転では有効にしない。
 
 ## Raspberry Pi 再起動後の手動復旧
 

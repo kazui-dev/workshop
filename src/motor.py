@@ -23,13 +23,15 @@ OUTPUT_PINS = PWM_PINS + (LEFT_DIR_PIN, RIGHT_DIR_PIN)
 
 
 class MotorDriver:
-    def __init__(self) -> None:
-        self._pi = pigpio.pi()
+    def __init__(self, pi: pigpio.pi | None = None) -> None:
+        self._pi = pi if pi is not None else pigpio.pi()
+        self._owns_connection = pi is None
         self._closed = False
         self._direction_by_pin: dict[int, bool] = {}
 
         if not self._pi.connected:
-            self._pi.stop()
+            if self._owns_connection:
+                self._pi.stop()
             raise RuntimeError(
                 "Failed to connect to pigpiod.\n"
                 "Please start pigpiod by running 'sudo pigpiod'."
@@ -41,7 +43,8 @@ class MotorDriver:
             self._configure_gpio()
             self.stop()
         except Exception:
-            self._pi.stop()
+            if self._owns_connection:
+                self._pi.stop()
             self._closed = True
             raise
 
@@ -135,5 +138,6 @@ class MotorDriver:
         try:
             self.stop()
         finally:
-            self._pi.stop()
+            if self._owns_connection:
+                self._pi.stop()
             self._closed = True

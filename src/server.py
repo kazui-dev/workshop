@@ -19,10 +19,12 @@ from config import (
 logger = logging.getLogger(__name__)
 
 
-class MotorController(Protocol):
-    def set_pwm(self, left: int, right: int) -> None: ...
+class OperationController(Protocol):
+    def apply_operation(self, left: int, right: int) -> None: ...
 
-    def stop(self) -> None: ...
+    def communication_timeout(self) -> None: ...
+
+    def disconnected(self) -> None: ...
 
 
 def _parse_operation_message(message: str | bytes) -> tuple[int, int]:
@@ -34,29 +36,35 @@ def _parse_operation_message(message: str | bytes) -> tuple[int, int]:
     if not isinstance(payload, dict):
         raise ValueError("message must be a JSON object")
 
-    if "left" not in payload or "right" not in payload:
-        raise ValueError("message must contain left and right")
+    if "leftMotorPwm" not in payload or "rightMotorPwm" not in payload:
+        raise ValueError("message must contain leftMotorPwm and rightMotorPwm")
 
-    left = payload["left"]
-    right = payload["right"]
+    left_motor_pwm = payload["leftMotorPwm"]
+    right_motor_pwm = payload["rightMotorPwm"]
 
     if (
-        isinstance(left, bool)
-        or not isinstance(left, int)
-        or isinstance(right, bool)
-        or not isinstance(right, int)
+        isinstance(left_motor_pwm, bool)
+        or not isinstance(left_motor_pwm, int)
+        or isinstance(right_motor_pwm, bool)
+        or not isinstance(right_motor_pwm, int)
     ):
-        raise ValueError("left and right must be integers")
+        raise ValueError("leftMotorPwm and rightMotorPwm must be integers")
 
-    if not PWM_MIN <= left <= PWM_MAX or not PWM_MIN <= right <= PWM_MAX:
-        raise ValueError(f"left and right must be between {PWM_MIN} and {PWM_MAX}")
+    if (
+        not PWM_MIN <= left_motor_pwm <= PWM_MAX
+        or not PWM_MIN <= right_motor_pwm <= PWM_MAX
+    ):
+        raise ValueError(
+            "leftMotorPwm and rightMotorPwm must be between "
+            f"{PWM_MIN} and {PWM_MAX}"
+        )
 
-    return left, right
+    return left_motor_pwm, right_motor_pwm
 
 
 class OperationServer:
-    def __init__(self, motor: MotorController) -> None:
-        self._motor = motor
+    def __init__(self, controller: OperationController) -> None:
+        self._controller = controller
         self._active_connection: ServerConnection | None = None
 
     async def handle_connection(self, websocket: ServerConnection) -> None:
@@ -89,17 +97,26 @@ class OperationServer:
                             websocket.recv(),
                             timeout=remaining,
                         )
-                except TimeoutError:
+                # asyncio.TimeoutError wasn't an alias of the built-in
+                # TimeoutError before Python 3.11.  Catch the asyncio name so
+                # this also works on older Raspberry Pi OS releases.
+                except asyncio.TimeoutError:
                     logger.warning(
                         "No operation message from %s for %.0fms; stopping motors",
                         remote_address,
                         OPERATION_TIMEOUT_SECONDS * 1000,
                     )
-                    self._motor.stop()
+                    self._controller.communication_timeout()
                     operation_deadline = None
                     continue
                 except ConnectionClosed:
                     break
+
+                logger.debug(
+                    "Received operation message from %s: %r",
+                    remote_address,
+                    message,
+                )
 
                 try:
                     left, right = _parse_operation_message(message)
@@ -111,11 +128,14 @@ class OperationServer:
                     )
                     continue
 
-                self._motor.set_pwm(left, right)
-                operation_deadline = loop.time() + OPERATION_TIMEOUT_SECONDS
+                self._controller.apply_operation(left, right)
+                if left == 0 and right == 0:
+                    operation_deadline = None
+                else:
+                    operation_deadline = loop.time() + OPERATION_TIMEOUT_SECONDS
         finally:
             try:
-                self._motor.stop()
+                self._controller.disconnected()
             finally:
                 self._active_connection = None
                 logger.info(
