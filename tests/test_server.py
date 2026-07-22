@@ -39,22 +39,33 @@ class FakeWebSocket:
 
 class ParseOperationMessageTest(unittest.TestCase):
     def test_accepts_valid_pwm_values(self) -> None:
-        self.assertEqual(_parse_operation_message('{"left": 10, "right": -20}'), (10, -20))
+        self.assertEqual(
+            _parse_operation_message(
+                '{"leftMotorPwm": 10, "rightMotorPwm": -20}'
+            ),
+            (10, -20),
+        )
 
     def test_rejects_boolean_values(self) -> None:
         with self.assertRaises(ValueError):
-            _parse_operation_message('{"left": true, "right": 0}')
+            _parse_operation_message(
+                '{"leftMotorPwm": true, "rightMotorPwm": 0}'
+            )
 
     def test_rejects_out_of_range_values(self) -> None:
         with self.assertRaises(ValueError):
-            _parse_operation_message('{"left": 256, "right": 0}')
+            _parse_operation_message(
+                '{"leftMotorPwm": 256, "rightMotorPwm": 0}'
+            )
 
 
 class OperationServerTest(unittest.IsolatedAsyncioTestCase):
     async def test_operation_timeout_is_handled_without_escaping(self) -> None:
         controller = FakeController()
         server = OperationServer(controller)
-        websocket = FakeWebSocket(['{"left": 10, "right": -20}'])
+        websocket = FakeWebSocket(
+            ['{"leftMotorPwm": 10, "rightMotorPwm": -20}']
+        )
 
         task = asyncio.create_task(server.handle_connection(websocket))  # type: ignore[arg-type]
         await asyncio.wait_for(controller.timeout_called.wait(), timeout=1)
@@ -72,8 +83,8 @@ class OperationServerTest(unittest.IsolatedAsyncioTestCase):
         server = OperationServer(controller)
         websocket = FakeWebSocket(
             [
-                '{"left": 10, "right": -20}',
-                '{"left": 0, "right": 0}',
+                '{"leftMotorPwm": 10, "rightMotorPwm": -20}',
+                '{"leftMotorPwm": 0, "rightMotorPwm": 0}',
             ]
         )
 
@@ -92,7 +103,7 @@ class OperationServerTest(unittest.IsolatedAsyncioTestCase):
     async def test_debug_logs_every_received_message(self) -> None:
         controller = FakeController()
         server = OperationServer(controller)
-        message = '{"left": 10, "right": -20}'
+        message = '{"leftMotorPwm": 10, "rightMotorPwm": -20}'
         websocket = FakeWebSocket([message])
 
         with self.assertLogs("server", level="DEBUG") as logs:
