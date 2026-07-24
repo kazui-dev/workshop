@@ -105,7 +105,15 @@ function setupJoystick(zone, idleJoystick, sendPWM) {
         size: 100
     });
 
+    function sendCurrentPWM() {
+        sendPWM(calculatePWM(state.x, state.y));
+    }
+
     function stop() {
+        if (!state.active && state.intervalId === null) {
+            return;
+        }
+
         if (state.intervalId !== null) {
             clearInterval(state.intervalId);
             state.intervalId = null;
@@ -127,9 +135,7 @@ function setupJoystick(zone, idleJoystick, sendPWM) {
         state.x = 0;
         state.y = 0;
         idleJoystick.classList.add('is-input-active');
-        state.intervalId = setInterval(() => {
-            sendPWM(calculatePWM(state.x, state.y));
-        }, PWM_SEND_INTERVAL_MS);
+        state.intervalId = setInterval(sendCurrentPWM, PWM_SEND_INTERVAL_MS);
     });
 
     manager.on('move', (event) => {
@@ -141,9 +147,30 @@ function setupJoystick(zone, idleJoystick, sendPWM) {
 
         state.x = vector.x;
         state.y = vector.y;
+        sendCurrentPWM();
     });
 
     manager.on('end', stop);
+
+    // Mobile browsers can take over a gesture near a screen edge without
+    // delivering nipplejs's end event. Stop from independent lifecycle and
+    // release events as a fail-safe so the last PWM value cannot repeat.
+    for (const eventName of [
+        'pointerup',
+        'pointercancel',
+        'touchend',
+        'touchcancel',
+        'mouseup'
+    ]) {
+        window.addEventListener(eventName, stop, { capture: true });
+    }
+    window.addEventListener('blur', stop);
+    window.addEventListener('pagehide', stop);
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            stop();
+        }
+    });
 
     return { stop };
 }
