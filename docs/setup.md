@@ -43,7 +43,7 @@ cd workshop
 
 ## 3. 配線と設定値を確認する
 
-[配線と設定値](hardware.md) を確認し、左右モーター、前方左右2台の HC-SR04、圧電ブザーを `src/config.py` の設定に合わせて配線する。GPIO 番号は物理 PIN 番号ではなく BCM 番号として扱う。
+[配線と設定値](hardware.md) を確認し、左右モーターと前方左右2台の HC-SR04 を `src/config.py` の設定に合わせて配線する。GPIO 番号は物理 PIN 番号ではなく BCM 番号として扱う。
 
 配線を変更するときは Raspberry Pi とリレー回路、モーター用電源を切る。モーター用電源を Raspberry Pi の 5 V ピンから直接取らない。
 
@@ -70,11 +70,13 @@ ls -l /dev/video0
 このスクリプトは次の処理を行う。
 
 - `.venv` の作成と Python 依存パッケージのインストール
+- Raspberry Pi のPWM音声を無効化
 - Raspberry Pi 上での systemd unit の生成とインストール
 - `pigpiod.service` と `workshop.target` の自動起動設定
 - pigpiod、Python 操作サーバー、 µStreamer の起動
 
 Raspberry Pi 以外では Python 環境だけを作り、 systemd は変更しない。明示的に Python 環境だけを更新する場合は `./scripts/setup --no-services` を使う。
+PWM音声の無効化は次回起動から有効になるため、初回セットアップ後に再起動する。
 
 ## 6. 起動を確認する
 

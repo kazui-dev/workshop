@@ -5,7 +5,6 @@ from contextlib import ExitStack
 
 import pigpio
 
-from buzzer import Buzzer
 from config import DISTANCE_MEASUREMENT_INTERVAL_SECONDS, DISTANCE_SENSOR_PINS
 from distance import DistanceSensor
 from motor import MotorDriver
@@ -51,8 +50,7 @@ async def main() -> None:
                 )
                 for sensor_id, trig_pin, echo_pin in DISTANCE_SENSOR_PINS
             )
-            buzzer = stack.enter_context(Buzzer(pi))
-            safety = SafetyController(motor, buzzer)
+            safety = SafetyController(motor)
             server = OperationServer(safety)
             server_task = asyncio.create_task(server.run())
             monitor_task = asyncio.create_task(

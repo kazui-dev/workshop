@@ -20,23 +20,10 @@ class FakeMotor:
         self.stop_count += 1
 
 
-class FakeBuzzer:
-    def __init__(self) -> None:
-        self.start_count = 0
-        self.stop_count = 0
-
-    def start(self) -> None:
-        self.start_count += 1
-
-    def stop(self) -> None:
-        self.stop_count += 1
-
-
 class SafetyControllerTest(unittest.TestCase):
     def setUp(self) -> None:
         self.motor = FakeMotor()
-        self.buzzer = FakeBuzzer()
-        self.safety = SafetyController(self.motor, self.buzzer)
+        self.safety = SafetyController(self.motor)
 
     def test_timeout_and_disconnect_stop_motors(self) -> None:
         self.safety.communication_timeout()
@@ -59,32 +46,28 @@ class SafetyControllerTest(unittest.TestCase):
 
         self.assertEqual(self.motor.operations, [(-100, -100), (100, -100)])
 
-    def test_obstacle_stops_motor_and_starts_buzzer_once(self) -> None:
+    def test_obstacle_stops_motor_once(self) -> None:
         self.safety.update_distance("left", OBSTACLE_DISTANCE_CM)
         self.safety.update_distance("left", OBSTACLE_DISTANCE_CM - 1)
         self.assertTrue(self.safety.obstacle_detected)
         self.assertEqual(self.motor.stop_count, 1)
-        self.assertEqual(self.buzzer.start_count, 1)
 
-    def test_clearing_obstacle_stops_buzzer_and_restores_operation(self) -> None:
+    def test_clearing_obstacle_restores_operation(self) -> None:
         self.safety.update_distance("left", OBSTACLE_DISTANCE_CM - 1)
         self.safety.update_distance("left", OBSTACLE_CLEAR_DISTANCE_CM)
         self.safety.update_distance("right", OBSTACLE_CLEAR_DISTANCE_CM)
         self.safety.apply_operation(100, 100)
         self.assertFalse(self.safety.obstacle_detected)
-        self.assertEqual(self.buzzer.stop_count, 1)
         self.assertEqual(self.motor.operations, [(100, 100)])
 
     def test_obstacle_state_uses_clear_distance_hysteresis(self) -> None:
         self.safety.update_distance("left", OBSTACLE_DISTANCE_CM)
         self.safety.update_distance("left", OBSTACLE_DISTANCE_CM + 1)
         self.assertTrue(self.safety.obstacle_detected)
-        self.assertEqual(self.buzzer.stop_count, 0)
 
         self.safety.update_distance("left", OBSTACLE_CLEAR_DISTANCE_CM)
         self.safety.update_distance("right", OBSTACLE_CLEAR_DISTANCE_CM)
         self.assertFalse(self.safety.obstacle_detected)
-        self.assertEqual(self.buzzer.stop_count, 1)
 
     def test_obstacle_removes_forward_but_keeps_rotation(self) -> None:
         self.safety.update_distance("left", OBSTACLE_DISTANCE_CM - 1)
@@ -107,7 +90,6 @@ class SafetyControllerTest(unittest.TestCase):
         self.safety.update_distance("left", None)
         self.assertTrue(self.safety.obstacle_detected)
         self.assertEqual(self.motor.stop_count, 1)
-        self.assertEqual(self.buzzer.start_count, 1)
 
     def test_valid_distance_resets_invalid_distance_count(self) -> None:
         for _ in range(DISTANCE_INVALID_LIMIT - 1):
@@ -124,11 +106,9 @@ class SafetyControllerTest(unittest.TestCase):
 
         self.safety.update_distance("left", OBSTACLE_CLEAR_DISTANCE_CM)
         self.assertTrue(self.safety.obstacle_detected)
-        self.assertEqual(self.buzzer.stop_count, 0)
 
         self.safety.update_distance("right", OBSTACLE_CLEAR_DISTANCE_CM)
         self.assertFalse(self.safety.obstacle_detected)
-        self.assertEqual(self.buzzer.stop_count, 1)
 
     def test_all_sensors_must_reach_clear_distance_after_detection(self) -> None:
         self.safety.update_distance("right", OBSTACLE_DISTANCE_CM + 1)
@@ -136,11 +116,9 @@ class SafetyControllerTest(unittest.TestCase):
 
         self.safety.update_distance("left", OBSTACLE_CLEAR_DISTANCE_CM)
         self.assertTrue(self.safety.obstacle_detected)
-        self.assertEqual(self.buzzer.stop_count, 0)
 
         self.safety.update_distance("right", OBSTACLE_CLEAR_DISTANCE_CM)
         self.assertFalse(self.safety.obstacle_detected)
-        self.assertEqual(self.buzzer.stop_count, 1)
 
     def test_valid_sensor_does_not_reset_other_sensor_fault_count(self) -> None:
         for _ in range(DISTANCE_INVALID_LIMIT):
@@ -149,7 +127,6 @@ class SafetyControllerTest(unittest.TestCase):
 
         self.assertTrue(self.safety.obstacle_detected)
         self.assertEqual(self.motor.stop_count, 1)
-        self.assertEqual(self.buzzer.start_count, 1)
 
     def test_rejects_unknown_sensor(self) -> None:
         with self.assertRaisesRegex(ValueError, "unknown distance sensor"):

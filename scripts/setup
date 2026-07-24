@@ -79,6 +79,32 @@ if ! systemctl cat pigpiod.service >/dev/null 2>&1; then
     exit 1
 fi
 
+boot_config=
+for candidate in /boot/firmware/config.txt /boot/config.txt; do
+    if [[ -f "$candidate" ]]; then
+        boot_config=$candidate
+        break
+    fi
+done
+
+if [[ -z "$boot_config" ]]; then
+    echo "Raspberry Pi boot config was not found." >&2
+    exit 1
+fi
+
+if grep -Eq '^[[:space:]]*dtparam=audio=on([[:space:]]*(#.*)?)?$' "$boot_config"; then
+    echo "Disabling Raspberry Pi audio in $boot_config"
+    run_as_root sed --follow-symlinks -i -E \
+        's/^[[:space:]]*dtparam=audio=on([[:space:]]*(#.*)?)?$/dtparam=audio=off\1/' \
+        "$boot_config"
+    echo "Audio is disabled for the next boot. Reboot after setup."
+elif ! grep -Eq '^[[:space:]]*dtparam=audio=off([[:space:]]*(#.*)?)?$' "$boot_config"; then
+    echo "Disabling Raspberry Pi audio in $boot_config"
+    printf '\n# Workshop does not use audio\ndtparam=audio=off\n' \
+        | run_as_root tee -a "$boot_config" >/dev/null
+    echo "Audio is disabled for the next boot. Reboot after setup."
+fi
+
 workshop_user=$(id -un)
 workshop_python="$WORKSHOP_ROOT/.venv/bin/python"
 ustreamer_command=$(command -v ustreamer)

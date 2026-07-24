@@ -22,24 +22,16 @@ class MotorController(Protocol):
     def stop(self) -> None: ...
 
 
-class WarningController(Protocol):
-    def start(self) -> None: ...
-
-    def stop(self) -> None: ...
-
-
 class SafetyController:
     def __init__(
         self,
         motor: MotorController,
-        buzzer: WarningController,
         sensor_ids: tuple[str, ...] = DISTANCE_SENSOR_IDS,
     ) -> None:
         if not sensor_ids:
             raise ValueError("at least one distance sensor is required")
 
         self._motor = motor
-        self._buzzer = buzzer
         self._obstacle_detected = False
         self._unverified_sensor_ids = set(sensor_ids)
         self._distance_states = {
@@ -108,6 +100,3 @@ class SafetyController:
             for state in self._distance_states.values():
                 state.obstacle_detected = True
             self._motor.stop()
-            self._buzzer.start()
-        else:
-            self._buzzer.stop()

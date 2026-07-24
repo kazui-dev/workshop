@@ -66,6 +66,13 @@ class ServiceSetupTest(unittest.TestCase):
         ):
             self.assertIn(service, start_script)
 
+    def test_setup_disables_raspberry_pi_audio(self) -> None:
+        setup_script = (PROJECT_ROOT / "scripts" / "setup").read_text()
+
+        self.assertIn("/boot/firmware/config.txt", setup_script)
+        self.assertIn("/boot/config.txt", setup_script)
+        self.assertIn("dtparam=audio=off", setup_script)
+
     @unittest.skipUnless(shutil.which("systemd-analyze"), "systemd is unavailable")
     def test_rendered_systemd_units_are_valid(self) -> None:
         systemd_directory = PROJECT_ROOT / "systemd"
