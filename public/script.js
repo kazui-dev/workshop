@@ -105,6 +105,18 @@ function setupJoystick(zone, idleJoystick, sendPWM) {
         size: 100
     });
 
+    zone.addEventListener('pointerdown', (event) => {
+        if (typeof zone.setPointerCapture !== 'function') {
+            return;
+        }
+
+        try {
+            zone.setPointerCapture(event.pointerId);
+        } catch (error) {
+            console.warn('Failed to capture joystick pointer:', error);
+        }
+    });
+
     function sendCurrentPWM() {
         sendPWM(calculatePWM(state.x, state.y));
     }
