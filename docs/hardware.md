@@ -16,10 +16,10 @@ GPIO の割り当ては `src/config.py` を正とする。配線後はこの表�
 
 | 用途 | BCM GPIO 番号 | コード上の設定 |
 | --- | --- | --- |
-| 左モーター PWM | `24` | `LEFT_PWM_PIN` |
-| 左モーター方向 | `25` | `LEFT_DIR_PIN` |
-| 右モーター PWM | `18` | `RIGHT_PWM_PIN` |
-| 右モーター方向 | `23` | `RIGHT_DIR_PIN` |
+| 左モーター PWM | `25` | `LEFT_PWM_PIN` |
+| 左モーター方向 | `24` | `LEFT_DIR_PIN` |
+| 右モーター PWM | `23` | `RIGHT_PWM_PIN` |
+| 右モーター方向 | `18` | `RIGHT_DIR_PIN` |
 | 前方左 HC-SR04 Trig | `12` | `LEFT_DISTANCE_TRIG_PIN` |
 | 前方左 HC-SR04 Echo | `16` | `LEFT_DISTANCE_ECHO_PIN` |
 | 前方右 HC-SR04 Trig | `20` | `RIGHT_DISTANCE_TRIG_PIN` |
