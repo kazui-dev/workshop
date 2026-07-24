@@ -27,6 +27,7 @@ body {
     height: 100%;
     height: 100dvh;
     overflow: hidden;
+    overscroll-behavior: none;
     background: var(--color-black);
 }
 
@@ -83,6 +84,7 @@ body {
 #joystick-area {
     z-index: 2;
     touch-action: none;
+    overscroll-behavior: none;
 }
 
 #idle-joystick {
